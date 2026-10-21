@@ -1,0 +1,502 @@
+/* Paleta tirada de uma quadra de piso duro: área externa, quadra, linhas e bola. */
+:root {
+  --runoff: #183a73;
+  --court: #2d66b8;
+  --line: #f3f6fa;
+  --ball: #d4ee2b;
+  --ink: #0f2247;
+  --ink-soft: #4a5b7a;
+  --border: #b4c2d8;
+  --surface: #ffffff;
+  --surface-tint: #eef3fa;
+  --error: #b3261e;
+  --error-tint: #fbedeb;
+
+  --font: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --gutter: clamp(1rem, 4vw, 4.5rem);
+
+  font-family: var(--font);
+  font-size: 100%;
+  line-height: 1.5;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--runoff);
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Quadra ---------- */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.court {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.court--vertical {
+  display: none;
+}
+
+.court-runoff {
+  fill: var(--runoff);
+}
+
+.court-surface {
+  fill: var(--court);
+}
+
+.court-line {
+  stroke: var(--line);
+  stroke-linecap: square;
+  stroke-dasharray: 1;
+  animation: draw-line 700ms cubic-bezier(0.6, 0, 0.2, 1) both;
+}
+
+.court-net-shadow {
+  stroke: rgb(6 20 52 / 0.35);
+  stroke-width: 0.36;
+  stroke-linecap: butt;
+  animation-delay: 560ms;
+}
+
+.court-net-tape {
+  stroke-width: 0.08;
+  animation-delay: 560ms;
+}
+
+.court-post {
+  fill: var(--line);
+}
+
+.bounce-mark {
+  fill: rgb(243 246 250 / 0.16);
+  animation: appear 400ms ease-out 1950ms both;
+}
+
+.ball {
+  fill: var(--ball);
+}
+
+.ball-seam {
+  fill: none;
+  stroke: #f7fbe0;
+  stroke-width: 0.035;
+}
+
+.ball-shadow {
+  fill: rgb(6 20 52 / 0.4);
+}
+
+.ball-flight {
+  animation: ball-flight 900ms cubic-bezier(0.25, 0.1, 0.35, 1) 1100ms both;
+}
+
+.ball-lift {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ball-lift 900ms cubic-bezier(0.3, 0, 0.6, 1) 1100ms both;
+}
+
+@keyframes draw-line {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ball-flight {
+  0% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy));
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes ball-lift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  45% {
+    transform: translate(0, -1.2px) scale(1.6);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+/* ---------- Página ---------- */
+
+.page {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  padding: var(--gutter);
+  padding-right: clamp(1.5rem, 4vw, 4rem);
+  color: var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 1.0625rem;
+  font-weight: 650;
+  font-stretch: 87.5%;
+  letter-spacing: 0.01em;
+}
+
+.ball-mark {
+  width: 1.375rem;
+  height: 1.375rem;
+  flex: none;
+}
+
+/* No modo paisagem o texto começa logo depois da linha de fundo.
+   --m é a escala do SVG (pixels por metro) com preserveAspectRatio="slice". */
+.intro-copy {
+  --m: max(100vw / 36.57, 100vh / 18.29);
+  margin-block: auto;
+  padding-block: 3rem;
+  padding-left: max(0px, calc(50vw - 11.135 * var(--m) - var(--gutter)));
+}
+
+.intro h1 {
+  margin: 0 0 1.5rem;
+  max-width: 6.5em;
+  font-size: clamp(4rem, 2.25rem + 5.6vw, 9rem);
+  font-weight: 820;
+  font-stretch: 62%;
+  line-height: 0.86;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+.intro p {
+  margin: 0;
+  max-width: 30ch;
+  font-size: 1.125rem;
+  line-height: 1.5;
+  color: rgb(243 246 250 / 0.88);
+}
+
+.access {
+  display: grid;
+  place-items: center;
+  padding: var(--gutter);
+  padding-left: clamp(1.5rem, 4vw, 4rem);
+}
+
+/* ---------- Cartão de acesso ---------- */
+
+.card {
+  width: min(100%, 25rem);
+  padding: 2rem 2rem 1.5rem;
+  background: var(--surface);
+  border-radius: 10px;
+  box-shadow:
+    0 1px 0 rgb(6 20 52 / 0.08),
+    0 28px 60px -24px rgb(6 20 52 / 0.65);
+}
+
+.card-title {
+  margin: 0 0 0.375rem;
+  font-size: 1.75rem;
+  font-weight: 760;
+  font-stretch: 75%;
+  line-height: 1.1;
+  letter-spacing: -0.005em;
+}
+
+.card-title:focus {
+  outline: none;
+}
+
+.card-lead {
+  margin: 0 0 1.5rem;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+}
+
+.card-lead strong {
+  color: var(--ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.notice,
+.alert {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 0.875rem;
+  border-radius: 6px;
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.notice {
+  background: var(--surface-tint);
+  color: var(--ink);
+}
+
+.alert {
+  background: var(--error-tint);
+  color: var(--error);
+  font-weight: 500;
+}
+
+.field {
+  margin-bottom: 1.125rem;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.field input {
+  display: block;
+  width: 100%;
+  height: 3rem;
+  padding: 0 0.875rem;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 1rem;
+  transition:
+    border-color 120ms,
+    box-shadow 120ms;
+}
+
+.field input:hover {
+  border-color: #8a9cba;
+}
+
+.field input:focus-visible {
+  outline: none;
+  border-color: var(--court);
+  box-shadow: 0 0 0 3px rgb(45 102 184 / 0.28);
+}
+
+.field input[aria-invalid='true'] {
+  border-color: var(--error);
+}
+
+.field input[aria-invalid='true']:focus-visible {
+  box-shadow: 0 0 0 3px rgb(179 38 30 / 0.2);
+}
+
+.field-error {
+  margin: 0.375rem 0 0;
+  color: var(--error);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.password {
+  position: relative;
+}
+
+.password input {
+  padding-right: 5.75rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.375rem;
+  transform: translateY(-50%);
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  color: var(--court);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.password-toggle:hover {
+  background: var(--surface-tint);
+}
+
+.password-toggle:focus-visible,
+.submit:focus-visible {
+  outline: 3px solid var(--court);
+  outline-offset: 2px;
+}
+
+.submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  width: 100%;
+  height: 3.125rem;
+  margin-top: 1.5rem;
+  background: var(--ink);
+  border: 0;
+  border-radius: 6px;
+  color: var(--line);
+  font-size: 1.0625rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color 120ms;
+}
+
+.submit:hover {
+  background: #1d3a73;
+}
+
+.submit:active {
+  transform: translateY(1px);
+}
+
+.submit:disabled {
+  cursor: progress;
+  background: #33496f;
+}
+
+.submit--quiet {
+  margin-top: 0;
+}
+
+/* Bolinha quicando enquanto a API responde. */
+.rally {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--ball);
+  animation: rally 520ms cubic-bezier(0.5, 0, 0.5, 1) infinite alternate;
+}
+
+@keyframes rally {
+  from {
+    transform: translateY(-5px);
+  }
+  to {
+    transform: translateY(4px);
+  }
+}
+
+.card-help {
+  margin: 1.5rem 0 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e3e9f2;
+  color: var(--ink-soft);
+  font-size: 0.875rem;
+}
+
+/* ---------- Retrato: quadra em pé, rede no meio da tela ---------- */
+
+@media (orientation: portrait) {
+  .court--horizontal {
+    display: none;
+  }
+
+  .court--vertical {
+    display: block;
+  }
+
+  .page {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .intro {
+    min-height: 50vh;
+    min-height: 50dvh;
+    padding: 1.25rem 1rem 1.5rem;
+  }
+
+  .intro-copy {
+    margin-block: auto 0;
+    padding: 2rem 0 0;
+  }
+
+  .intro h1 {
+    margin-bottom: 1rem;
+    font-size: clamp(3.5rem, 15vw, 7rem);
+  }
+
+  .intro p {
+    font-size: 1.0625rem;
+  }
+
+  .access {
+    place-items: start center;
+    padding: 1.5rem 1rem 2rem;
+  }
+
+  .card {
+    padding: 1.5rem 1.25rem 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .court-line,
+  .bounce-mark,
+  .ball-flight,
+  .ball-lift,
+  .rally {
+    animation: none;
+  }
+}
