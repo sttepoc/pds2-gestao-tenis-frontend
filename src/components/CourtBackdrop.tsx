@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 
 // Quadra de tênis vista de cima, em metros e nas medidas oficiais da ITF.
-// O viewBox usa metros, então as linhas têm a espessura real (5 cm; fundo com 10 cm).
+// As marcações usam a mesma espessura para manter a ilustração uniforme.
 const RUNOFF_BACK = 6.4;
 const RUNOFF_SIDE = 3.66;
 const LENGTH = 23.77;
@@ -9,6 +9,7 @@ const WIDTH = 10.97;
 const ALLEY = 1.37;
 const SERVICE = 6.4;
 const POST_OFFSET = 0.914;
+const LINE_WIDTH = 0.05;
 
 const TOTAL_LENGTH = LENGTH + RUNOFF_BACK * 2;
 const TOTAL_WIDTH = WIDTH + RUNOFF_SIDE * 2;
@@ -17,25 +18,23 @@ const Y0 = RUNOFF_SIDE;
 const NET_X = X0 + LENGTH / 2;
 const MID_Y = Y0 + WIDTH / 2;
 
-type Segment = { x1: number; y1: number; x2: number; y2: number; width: number; delay: number };
+type Segment = { x1: number; y1: number; x2: number; y2: number; delay: number };
 
 const LINES: Segment[] = [
   // Linhas de fundo
-  { x1: X0, y1: Y0, x2: X0, y2: Y0 + WIDTH, width: 0.1, delay: 0 },
-  { x1: X0 + LENGTH, y1: Y0, x2: X0 + LENGTH, y2: Y0 + WIDTH, width: 0.1, delay: 0 },
+  { x1: X0, y1: Y0, x2: X0, y2: Y0 + WIDTH, delay: 0 },
+  { x1: X0 + LENGTH, y1: Y0, x2: X0 + LENGTH, y2: Y0 + WIDTH, delay: 0 },
   // Laterais de duplas
-  { x1: X0, y1: Y0, x2: X0 + LENGTH, y2: Y0, width: 0.05, delay: 120 },
-  { x1: X0, y1: Y0 + WIDTH, x2: X0 + LENGTH, y2: Y0 + WIDTH, width: 0.05, delay: 120 },
+  { x1: X0, y1: Y0, x2: X0 + LENGTH, y2: Y0, delay: 120 },
+  { x1: X0, y1: Y0 + WIDTH, x2: X0 + LENGTH, y2: Y0 + WIDTH, delay: 120 },
   // Laterais de simples
-  { x1: X0, y1: Y0 + ALLEY, x2: X0 + LENGTH, y2: Y0 + ALLEY, width: 0.05, delay: 220 },
-  { x1: X0, y1: Y0 + WIDTH - ALLEY, x2: X0 + LENGTH, y2: Y0 + WIDTH - ALLEY, width: 0.05, delay: 220 },
+  { x1: X0, y1: Y0 + ALLEY, x2: X0 + LENGTH, y2: Y0 + ALLEY, delay: 220 },
+  { x1: X0, y1: Y0 + WIDTH - ALLEY, x2: X0 + LENGTH, y2: Y0 + WIDTH - ALLEY, delay: 220 },
   // Linhas de saque
-  { x1: NET_X - SERVICE, y1: Y0 + ALLEY, x2: NET_X - SERVICE, y2: Y0 + WIDTH - ALLEY, width: 0.05, delay: 340 },
-  { x1: NET_X + SERVICE, y1: Y0 + ALLEY, x2: NET_X + SERVICE, y2: Y0 + WIDTH - ALLEY, width: 0.05, delay: 340 },
-  // Linha central de saque e marcas centrais
-  { x1: NET_X - SERVICE, y1: MID_Y, x2: NET_X + SERVICE, y2: MID_Y, width: 0.05, delay: 440 },
-  { x1: X0, y1: MID_Y, x2: X0 + 0.1, y2: MID_Y, width: 0.05, delay: 440 },
-  { x1: X0 + LENGTH - 0.1, y1: MID_Y, x2: X0 + LENGTH, y2: MID_Y, width: 0.05, delay: 440 },
+  { x1: NET_X - SERVICE, y1: Y0 + ALLEY, x2: NET_X - SERVICE, y2: Y0 + WIDTH - ALLEY, delay: 340 },
+  { x1: NET_X + SERVICE, y1: Y0 + ALLEY, x2: NET_X + SERVICE, y2: Y0 + WIDTH - ALLEY, delay: 340 },
+  // Linha central de saque
+  { x1: NET_X - SERVICE, y1: MID_Y, x2: NET_X + SERVICE, y2: MID_Y, delay: 440 },
 ];
 
 // A bola sai do lado do formulário, cruza a rede e quica perto dela.
@@ -58,10 +57,10 @@ function buildGeometry(orientation: Orientation) {
     box: vertical ? [round(TOTAL_WIDTH), round(TOTAL_LENGTH)] : [round(TOTAL_LENGTH), round(TOTAL_WIDTH)],
     corner: at(X0, Y0),
     size: vertical ? { width: WIDTH, height: LENGTH } : { width: LENGTH, height: WIDTH },
+    copyArea: vertical ? { width: WIDTH, height: LENGTH / 2 } : { width: LENGTH / 2, height: WIDTH },
     lines: LINES.map((line) => ({
       a: at(line.x1, line.y1),
       b: at(line.x2, line.y2),
-      width: line.width,
       style: { animationDelay: `${line.delay}ms` } as CSSProperties,
     })),
     netStart: at(NET_X, Y0 - POST_OFFSET),
@@ -80,7 +79,8 @@ const GEOMETRY = {
 };
 
 function Court({ orientation }: { orientation: Orientation }) {
-  const { box, corner, size, lines, netStart, netEnd, land, flight } = GEOMETRY[orientation];
+  const { box, corner, size, copyArea, lines, netStart, netEnd, land, flight } = GEOMETRY[orientation];
+  const shadeId = `court-copy-shade-${orientation}`;
 
   return (
     <svg
@@ -90,10 +90,24 @@ function Court({ orientation }: { orientation: Orientation }) {
       aria-hidden="true"
       focusable="false"
     >
+      <defs>
+        <radialGradient id={shadeId} r="70%">
+          <stop offset="0%" stopColor="var(--runoff)" stopOpacity="0.6" />
+          <stop offset="45%" stopColor="var(--runoff)" stopOpacity="0.45" />
+          <stop offset="100%" stopColor="var(--runoff)" stopOpacity="0" />
+        </radialGradient>
+      </defs>
       <rect width={box[0]} height={box[1]} className="court-runoff" />
-      <rect x={corner.x} y={corner.y} width={size.width} height={size.height} className="court-surface" />
+      <g className="court-floor">
+        <rect x={corner.x} y={corner.y} width={size.width} height={size.height} className="court-surface" />
+        {/* Piso e sombreado aparecem juntos, sob as marcações. */}
+        <rect
+          x={corner.x} y={corner.y} width={copyArea.width} height={copyArea.height}
+          fill={`url(#${shadeId})`} pointerEvents="none"
+        />
+      </g>
 
-      {lines.map(({ a, b, width, style }, index) => (
+      {lines.map(({ a, b, style }, index) => (
         <line
           key={index}
           x1={a.x}
@@ -101,7 +115,7 @@ function Court({ orientation }: { orientation: Orientation }) {
           x2={b.x}
           y2={b.y}
           pathLength={1}
-          strokeWidth={width}
+          strokeWidth={LINE_WIDTH}
           className="court-line"
           style={style}
         />
@@ -114,7 +128,6 @@ function Court({ orientation }: { orientation: Orientation }) {
         <circle cx={netEnd.x} cy={netEnd.y} r={0.09} className="court-post" />
       </g>
 
-      <ellipse cx={land.x} cy={land.y} rx={0.32} ry={0.2} className="bounce-mark" />
       <g transform={`translate(${land.x} ${land.y})`}>
         <g className="ball-flight" style={flight}>
           <ellipse cx={0.06} cy={0.08} rx={0.24} ry={0.18} className="ball-shadow" />

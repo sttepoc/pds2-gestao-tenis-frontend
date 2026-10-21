@@ -71,11 +71,10 @@ export function LoginForm({ onLogin, notice }: Props) {
   const passwordErrorId = `${id}-password-error`;
 
   return (
-    <form className="card" onSubmit={handleSubmit} noValidate aria-labelledby={`${id}-title`}>
+    <form className="card login-card" onSubmit={handleSubmit} noValidate aria-labelledby={`${id}-title`}>
       <h2 id={`${id}-title`} className="card-title">
         Acesse sua conta
       </h2>
-      <p className="card-lead">Use o e-mail e a senha cadastrados no clube.</p>
 
       {notice && !formError && (
         <p className="notice" role="status">
@@ -156,7 +155,10 @@ export function LoginForm({ onLogin, notice }: Props) {
         )}
       </button>
 
-      <p className="card-help">Não consegue entrar? Fale com a secretaria do clube.</p>
+      <p className="card-help">
+        Não consegue entrar?<br />
+        Fale com a secretaria do clube.
+      </p>
     </form>
   );
 }

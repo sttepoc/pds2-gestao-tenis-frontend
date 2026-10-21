@@ -1,41 +1,43 @@
 # Clube de Tênis — Frontend
 
-Interface web do sistema de gestão do clube de tênis. Esta primeira entrega cobre a **US02 — login e logout**, usando a API do repositório [pds2-gestao-tenis-backend](https://github.com/Kiincoder/pds2-gestao-tenis-backend).
+Interface em React, TypeScript, Vite e CSS puro, com login, navegação, início e dados da conta. A área de membros possui verificação de acesso administrativo; a tabela e os formulários ainda não estão implementados.
 
-Stack: React 19, TypeScript e Vite, com CSS puro.
+## Executar sem backend
 
-## Executar
-
-1. Suba a API seguindo o README do backend (ela deve responder em `http://localhost:8000`).
-2. Neste repositório:
+Com Node.js instalado:
 
 ```powershell
 npm install
+Copy-Item .env.example .env.local
 npm run dev
 ```
 
-Abra `http://localhost:5173`.
+Abra [localhost:5173](http://localhost:5173).
 
-A API ainda não libera CORS, então em desenvolvimento o Vite repassa tudo que começa com `/api` para `http://localhost:8000`. Para apontar para outro endereço, crie um `.env` com `API_PROXY_TARGET=http://outro-host:porta`.
+O `.env.example` ativa os dados simulados. As contas fictícias são `admin@clube.example` e `usuario@clube.example`, ambas com a senha `SenhaSegura123`.
 
-Em produção, defina `VITE_API_URL` com a URL da API antes do `npm run build` (e libere CORS no backend para o domínio do frontend).
+Os dados simulados ficam na sessão da aba e não são enviados à API. Use somente dados fictícios. As opções disponíveis estão em `.env.example`; reinicie o Vite após alterar `.env.local`.
 
-## O que a tela faz
+## Executar com backend
 
-- `POST /api/v1/auth/login` com e-mail e senha; mostra as mensagens da API para 401 (credenciais), 422 (dados inválidos) e 429 (muitas tentativas).
-- Guarda o token na `sessionStorage` da aba e confere com `GET /api/v1/auth/me` ao recarregar.
-- `POST /api/v1/auth/logout` no botão **Sair**.
+Em `.env.local`, configure:
 
-## Organização
-
-```text
-src/
-  api/auth.ts             Chamadas às rotas de autenticação e tratamento de erros
-  api/session-storage.ts  Token da sessão na aba atual
-  components/
-    CourtBackdrop.tsx     Quadra em SVG nas medidas oficiais (fundo da página)
-    LoginForm.tsx         Formulário de login com validação
-    SignedIn.tsx          Tela provisória após o login
-  App.tsx                 Alterna entre login e sessão ativa
-  styles.css              Paleta, tipografia e layout
+```env
+VITE_USE_MOCK_API=false
+API_PROXY_TARGET=http://localhost:8000
 ```
+
+Inicie a API e execute `npm run dev`. O Vite encaminha as requisições `/api/*` ao backend. As sessões de mock e API real são separadas.
+
+O frontend consulta `/api/v1/auth/me` para recuperar a sessão. Como a resposta de usuário ainda não informa se a conta é administrativa, o acesso à área de membros é verificado por `/api/v1/members?page_size=1`. A autorização continua sendo responsabilidade do backend.
+
+## Build
+
+```powershell
+npm run build
+npm run preview
+```
+
+O build de produção sempre usa a API real. Para uma API em outra origem, defina `VITE_API_URL` antes do build, sem `/api/v1` no final, e configure CORS no backend. Na mesma origem, o servidor de hospedagem deve encaminhar `/api` ao backend.
+
+Não inclua `.env.local`, `node_modules` ou `dist` no Git; o `.gitignore` já os exclui. Mantenha `.env.example` e `package-lock.json` no repositório.
