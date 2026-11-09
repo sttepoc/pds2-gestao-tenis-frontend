@@ -1,4 +1,4 @@
-import { useId, useRef, useState, useTransition, type FormEvent } from 'react';
+import { useEffect, useId, useRef, useState, useTransition, type FormEvent } from 'react';
 import { createCourt, updateCourt } from '../api/courts';
 import { ApiError, errorMessage, isExpired } from '../api/error';
 import type { Court, CourtInput, Surface } from '../api/types';
@@ -22,6 +22,8 @@ export function CourtForm({ court, token, onSaved, onCancel, onExpired }: Props)
   const [nameError, setNameError] = useState('');
   const [formError, setFormError] = useState('');
   const [submitting, startSubmit] = useTransition();
+
+  useEffect(() => nameRef.current?.focus(), []);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

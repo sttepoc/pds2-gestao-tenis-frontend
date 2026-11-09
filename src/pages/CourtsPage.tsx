@@ -1,19 +1,36 @@
-import { useState } from 'react';
-import { listCourts } from '../api/courts';
-import type { Court, Session } from '../api/types';
+import { useEffect, useRef, useState } from 'react';
+import { listCourts, removeMaintenance } from '../api/courts';
+import { errorMessage, isExpired } from '../api/error';
+import type { Court, MaintenanceWindow, Session } from '../api/types';
 import { AccessStatus } from '../components/AccessStatus';
 import { CourtCard } from '../components/CourtCard';
 import { CourtForm } from '../components/CourtForm';
+import { MaintenanceForm } from '../components/MaintenanceForm';
 import { useLoad } from '../hooks/useLoad';
 import type { MemberAccess } from '../hooks/useMemberAccess';
 import { routePaths } from '../navigation';
 
-type Props = { session: Session; access: MemberAccess; onRetry: () => void; onExpired: () => void };
+type Props = { session: Session; access: MemberAccess; now?: () => number; onRetry: () => void; onExpired: () => void };
 type Editing = 'new' | Court | null;
 
-function CourtManager({ session, onExpired }: Pick<Props, 'session' | 'onExpired'>) {
+function CourtManager({ session, now = Date.now, onExpired }: Pick<Props, 'session' | 'now' | 'onExpired'>) {
   const { state, reload, setData } = useLoad('courts', () => listCourts(session.token), onExpired);
   const [editing, setEditing] = useState<Editing>(null);
+  const [maintaining, setMaintaining] = useState<number | null>(null);
+  const [notice, setNotice] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [removing, setRemoving] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const opener = useRef<string | null>(null);
+
+  // Ao fechar um formulário, o foco volta ao botão que o abriu (que pode ter sido remontado).
+  const closed = editing === null && maintaining === null;
+  useEffect(() => {
+    if (closed && opener.current) {
+      root.current?.querySelector<HTMLElement>(`[data-opener="${opener.current}"]`)?.focus();
+      opener.current = null;
+    }
+  }, [closed, state.status]);
 
   if (state.status === 'loading') {
     return <p className="status-line" role="status"><span className="rally" aria-hidden="true" />Carregando quadras…</p>;
@@ -28,44 +45,105 @@ function CourtManager({ session, onExpired }: Pick<Props, 'session' | 'onExpired
   }
 
   const courts = state.data;
-  function handleSaved(saved: Court) {
+  function open(key: string, form: { editing?: Editing; maintaining?: number }) {
+    opener.current = key;
+    setNotice('');
+    setActionError('');
+    setEditing(form.editing ?? null);
+    setMaintaining(form.maintaining ?? null);
+  }
+  function close() {
+    setEditing(null);
+    setMaintaining(null);
+  }
+  function replaceCourt(saved: Court) {
     setData(courts.some((item) => item.id === saved.id)
       ? courts.map((item) => (item.id === saved.id ? saved : item))
       : [...courts, saved]);
-    setEditing(null);
+  }
+  function handleSaved(saved: Court) {
+    replaceCourt(saved);
+    setNotice('Quadra salva.');
+    close();
+  }
+  function handleMaintenanceSaved(saved: Court) {
+    replaceCourt(saved);
+    setNotice('Manutenção registrada.');
+    close();
+  }
+  async function handleRemove(court: Court, item: MaintenanceWindow) {
+    if (removing) return;
+    setRemoving(true);
+    setNotice('');
+    setActionError('');
+    try {
+      replaceCourt(await removeMaintenance(session.token, court.id, item.id));
+      setNotice('Manutenção removida.');
+    } catch (error) {
+      if (isExpired(error)) return onExpired();
+      setActionError(errorMessage(error, 'Não foi possível remover a manutenção. Tente de novo.'));
+    } finally {
+      setRemoving(false);
+    }
   }
 
   return (
-    <>
-      {editing ? (
-        <CourtForm
-          key={editing === 'new' ? 'new' : editing.id}
-          court={editing === 'new' ? undefined : editing}
-          token={session.token}
-          onSaved={handleSaved} onCancel={() => setEditing(null)} onExpired={onExpired}
-        />
+    <div ref={root}>
+      {notice && <p className="notice" role="status">{notice}</p>}
+      {actionError && <p className="alert" role="alert">{actionError}</p>}
+      {editing === 'new' ? (
+        <CourtForm key="new" token={session.token} onSaved={handleSaved} onCancel={close} onExpired={onExpired} />
       ) : (
-        <button type="button" className="submit court-new" onClick={() => setEditing('new')}>Nova quadra</button>
+        <button type="button" className="submit court-new" data-opener="new" onClick={() => open('new', { editing: 'new' })}>
+          Nova quadra
+        </button>
+      )}
+      {editing && editing !== 'new' && (
+        <CourtForm key={editing.id} court={editing} token={session.token} onSaved={handleSaved} onCancel={close} onExpired={onExpired} />
       )}
       {courts.length === 0 ? (
         <p className="muted">Nenhuma quadra cadastrada ainda.</p>
       ) : (
         <div className="quick-access-grid">
           {courts.map((court) => (
-            <CourtCard key={court.id} court={court}>
-              <button type="button" className="button button--secondary" onClick={() => setEditing(court)}>Editar</button>
+            <CourtCard
+              key={court.id} court={court} now={now()} removing={removing}
+              onRemoveMaintenance={(item) => handleRemove(court, item)}
+            >
+              {maintaining === court.id ? (
+                <MaintenanceForm
+                  court={court} token={session.token}
+                  onSaved={handleMaintenanceSaved} onCancel={close} onExpired={onExpired}
+                />
+              ) : (
+                <div className="form-actions">
+                  <button
+                    type="button" className="button button--secondary" data-opener={`edit-${court.id}`}
+                    aria-label={`Editar ${court.name}`} onClick={() => open(`edit-${court.id}`, { editing: court })}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    type="button" className="button button--secondary" data-opener={`maint-${court.id}`}
+                    aria-label={`Marcar manutenção em ${court.name}`}
+                    onClick={() => open(`maint-${court.id}`, { maintaining: court.id })}
+                  >
+                    Marcar manutenção
+                  </button>
+                </div>
+              )}
             </CourtCard>
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
-export function CourtsPage({ session, access, onRetry, onExpired }: Props) {
+export function CourtsPage({ session, access, now, onRetry, onExpired }: Props) {
   let content;
   if (access.status === 'allowed') {
-    content = <CourtManager session={session} onExpired={onExpired} />;
+    content = <CourtManager session={session} now={now} onExpired={onExpired} />;
   } else if (access.status === 'denied') {
     content = (
       <section className="content-panel empty-panel" aria-labelledby="courts-status-title">

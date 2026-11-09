@@ -62,8 +62,6 @@ describe('createMockApi v2', () => {
     const { token } = await api.login('usuario@clube.example', DEMO_PASSWORD);
     const slot = { court_id: 1, starts_at: '2026-11-10T22:00:00.000Z' };
     const calls: ((a: ApiServices) => Promise<unknown>)[] = [
-      (a) => a.addMaintenance(token, 1, { starts_at: 'A', ends_at: 'B', reason: 'Rede' }),
-      (a) => a.removeMaintenance(token, 3, 4),
       (a) => a.getSchedule(token, '2026-11-10'),
       (a) => a.searchPlayers(token, 'ma'),
       (a) => a.createBooking(token, { ...slot, participant_ids: [] }),

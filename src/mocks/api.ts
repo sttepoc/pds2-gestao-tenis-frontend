@@ -124,8 +124,6 @@ export function mockApiFor(ctx: MockContext): ApiServices {
       persist();
     },
     ...courtHandlers(ctx),
-    addMaintenance: pending,
-    removeMaintenance: pending,
     getSchedule: pending,
     searchPlayers: pending,
     createBooking: pending,

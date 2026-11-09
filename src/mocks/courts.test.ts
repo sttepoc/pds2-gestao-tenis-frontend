@@ -69,4 +69,84 @@ describe('courtHandlers', () => {
     const { api, admin } = await setupTestApi({ scenario: 'error' });
     await expect(api.listCourts(admin.token)).rejects.toMatchObject({ status: 500 });
   });
+
+  describe('manutenção', () => {
+    const NOW = Date.parse('2026-11-09T12:00:00-03:00');
+    const window = { starts_at: '2026-11-10T18:00:00-03:00', ends_at: '2026-11-10T21:00:00-03:00', reason: 'Piso novo' };
+
+    it('jogador comum recebe 403', async () => {
+      const { api, player } = await setupTestApi({ now: () => NOW });
+      await expect(api.addMaintenance(player.token, 1, window)).rejects.toMatchObject({ status: 403 });
+      await expect(api.removeMaintenance(player.token, 3, 4)).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('registra a janela e devolve a quadra', async () => {
+      const { api, admin } = await setupTestApi({ now: () => NOW });
+      const court = await api.addMaintenance(admin.token, 2, window);
+      expect(court.maintenance).toHaveLength(1);
+      expect(court.maintenance[0]).toMatchObject({ reason: 'Piso novo' });
+      expect(Date.parse(court.maintenance[0].starts_at)).toBe(Date.parse(window.starts_at));
+    });
+
+    it('fim igual ou antes do início → 422 em ends_at; motivo fora de 1–200 → 422 em reason', async () => {
+      const { api, admin } = await setupTestApi({ now: () => NOW });
+      await expect(api.addMaintenance(admin.token, 2, { ...window, ends_at: window.starts_at })).rejects.toMatchObject({
+        status: 422, fieldErrors: { ends_at: ['O fim precisa ser depois do início.'] },
+      });
+      await expect(api.addMaintenance(admin.token, 2, { ...window, reason: ' ' })).rejects.toMatchObject({ status: 422, fieldErrors: { reason: [expect.any(String)] } });
+      await expect(api.addMaintenance(admin.token, 2, { ...window, reason: 'a'.repeat(201) })).rejects.toMatchObject({ status: 422 });
+      await expect(api.addMaintenance(admin.token, 2, { ...window, reason: 'a'.repeat(200) })).resolves.toBeDefined();
+    });
+
+    it('quadra inexistente → 404', async () => {
+      const { api, admin } = await setupTestApi({ now: () => NOW });
+      await expect(api.addMaintenance(admin.token, 999, window)).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('reserva ativa no período → 409 sem cancelar nada', async () => {
+      const { api, admin, ctx } = await setupTestApi({ now: () => NOW });
+      await expect(api.addMaintenance(admin.token, 1, window)).rejects.toMatchObject({
+        status: 409,
+        message: 'Há 1 reserva(s) nesse período.',
+        fieldErrors: { cancel_bookings: [expect.any(String)] },
+      });
+      expect(ctx.db.bookings.find((item) => item.id === 5)?.status).toBe('active');
+    });
+
+    it('cancel_bookings cancela as reservas e remove a fila dos horários', async () => {
+      const { api, admin, ctx } = await setupTestApi({ now: () => NOW });
+      const booking = ctx.db.bookings.find((item) => item.id === 5)!;
+      ctx.db.waitlist.push({ id: 50, user_id: 3, court_id: 1, starts_at: booking.starts_at, created_at: booking.starts_at, offer_expires_at: null });
+      ctx.db.waitlist.push({ id: 51, user_id: 3, court_id: 2, starts_at: booking.starts_at, created_at: booking.starts_at, offer_expires_at: null });
+      await api.addMaintenance(admin.token, 1, { ...window, cancel_bookings: true });
+      expect(ctx.db.bookings.find((item) => item.id === 5)?.status).toBe('cancelled');
+      expect(ctx.db.waitlist.map((item) => item.id)).toEqual([51]);
+    });
+
+    it('reserva já cancelada ou fora do período não conta', async () => {
+      const { api, admin, ctx } = await setupTestApi({ now: () => NOW });
+      ctx.db.bookings.find((item) => item.id === 5)!.status = 'cancelled';
+      await expect(api.addMaintenance(admin.token, 1, window)).resolves.toBeDefined();
+      await expect(api.addMaintenance(admin.token, 2, window)).resolves.toBeDefined();
+    });
+
+    it('janela que só encosta na reserva (fim = início) não conflita', async () => {
+      const { api, admin } = await setupTestApi({ now: () => NOW });
+      await expect(api.addMaintenance(admin.token, 1, { ...window, ends_at: '2026-11-10T19:00:00-03:00' })).resolves.toBeDefined();
+    });
+
+    it('campo extra → 422', async () => {
+      const { api, admin } = await setupTestApi({ now: () => NOW });
+      const input = { ...window, id: 1 } as unknown as typeof window;
+      await expect(api.addMaintenance(admin.token, 2, input)).rejects.toMatchObject({ status: 422, fieldErrors: { id: [expect.any(String)] } });
+    });
+
+    it('remove a janela; 404 para janela ou quadra inexistente', async () => {
+      const { api, admin } = await setupTestApi({ now: () => NOW });
+      const court = await api.removeMaintenance(admin.token, 3, 4);
+      expect(court.maintenance).toEqual([]);
+      await expect(api.removeMaintenance(admin.token, 3, 4)).rejects.toMatchObject({ status: 404 });
+      await expect(api.removeMaintenance(admin.token, 999, 4)).rejects.toMatchObject({ status: 404 });
+    });
+  });
 });
