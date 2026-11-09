@@ -294,15 +294,30 @@ describe('BookingsPage fila de espera', () => {
   it('erro ao sair da fila aparece como alerta; 401 chama onExpired', async () => {
     const { pedro, api } = await setupTestApi({ now: () => NOW });
     await api.joinWaitlist(pedro.token, taken);
-    api.leaveWaitlist = vi.fn().mockRejectedValueOnce(new ApiError('Entrada não encontrada.', 404)).mockRejectedValueOnce(new ApiError('x', 401));
+    api.leaveWaitlist = vi.fn().mockRejectedValueOnce(new ApiError('Falha simulada no servidor. Tente novamente.', 500))
+      .mockRejectedValueOnce(new ApiError('x', 401));
     const user = userEvent.setup();
     const { onExpired } = renderPage(pedro);
     await user.click(await screen.findByRole('tab', { name: 'Fila de espera (1)' }));
     const leave = await screen.findByRole('button', { name: /^Sair da fila/ });
     await user.click(leave);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Entrada não encontrada.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha simulada no servidor. Tente novamente.');
     await user.click(screen.getByRole('button', { name: /^Sair da fila/ }));
     await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+  });
+
+  it('entrada que já saiu da fila (404) some da lista com o aviso', async () => {
+    const { pedro, api, ctx } = await setupTestApi({ now: () => NOW });
+    await api.joinWaitlist(pedro.token, taken);
+    const user = userEvent.setup();
+    renderPage(pedro);
+    await user.click(await screen.findByRole('tab', { name: 'Fila de espera (1)' }));
+    const leave = await screen.findByRole('button', { name: /^Sair da fila/ });
+    ctx.db.waitlist = [];
+    await user.click(leave);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Entrada não encontrada.');
+    expect(screen.queryByRole('button', { name: /^Sair da fila/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Fila de espera (0)' })).toBeInTheDocument();
   });
 });
 

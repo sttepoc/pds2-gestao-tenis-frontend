@@ -1,10 +1,13 @@
-import type { User } from '../api/auth';
+import type { Session } from '../api/types';
 import { AccessStatus } from '../components/AccessStatus';
+import { OfferBanners } from '../components/OfferBanner';
 import type { MemberAccess } from '../hooks/useMemberAccess';
 import { routePaths } from '../navigation';
 
-export function HomePage({ user, access, onRetry }: { user: User; access: MemberAccess; onRetry: () => void }) {
-  const firstName = user.name.trim().split(/\s+/)[0];
+type Props = { session: Session; access: MemberAccess; onRetry: () => void; onExpired: () => void };
+
+export function HomePage({ session, access, onRetry, onExpired }: Props) {
+  const firstName = session.user.name.trim().split(/\s+/)[0];
   return (
     <>
       <div className="page-heading">
@@ -12,6 +15,7 @@ export function HomePage({ user, access, onRetry }: { user: User; access: Member
         <h1>Olá, {firstName}.</h1>
         <p>Bom ter você por aqui. O que vamos organizar hoje?</p>
       </div>
+      <OfferBanners session={session} onExpired={onExpired} />
       <section className="welcome-panel" aria-labelledby="welcome-title">
         <div>
           <p className="eyebrow">DENTRO E FORA DE QUADRA</p>

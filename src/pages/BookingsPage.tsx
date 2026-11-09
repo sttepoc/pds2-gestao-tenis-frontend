@@ -4,6 +4,7 @@ import type { Booking, Session, WaitlistEntry } from '../api/types';
 import { AttendanceActions } from '../components/AttendanceActions';
 import { BookingCard } from '../components/BookingCard';
 import { CancelBookingAction } from '../components/CancelBookingAction';
+import { OfferBanners } from '../components/OfferBanner';
 import { RescheduleLink } from '../components/RescheduleLink';
 import { WaitlistList } from '../components/WaitlistList';
 import { panelId, tabId, Tabs } from '../components/Tabs';
@@ -114,6 +115,8 @@ export function BookingsPage({ session, onExpired, now }: Props) {
         <h1>Minhas reservas</h1>
         <p>Acompanhe os horários que você marcou ou para os quais foi convidado.</p>
       </div>
+      {/* Aceitar cria uma reserva e recusar tira a entrada: as duas listas recarregam. */}
+      <OfferBanners session={session} onExpired={onExpired} onChange={() => { reload(); waitlist.reload(); }} />
       <section className="content-panel" aria-label="Minhas reservas">
         {notice && <p className="notice" role="status">{notice}</p>}
         <Tabs tabs={tabsFor(waitlist.state.status === 'ready' ? waitlist.state.data.length : null)} value={tab} onChange={changeTab} />

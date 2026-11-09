@@ -3,13 +3,13 @@ import type { ApiServices, Member, MemberQuery } from '../api/types';
 import { bookingHandlers } from './bookings';
 import { courtHandlers } from './courts';
 import { scheduleHandlers } from './schedule';
-import { waitlistHandlers } from './waitlist';
-import { createMockContext, notYet, type MockContext, type MockOptions } from './context';
+import { advanceOffers, waitlistHandlers } from './waitlist';
+import { createMockContext, type MockContext, type MockOptions } from './context';
 import { DEMO_PASSWORD } from './fixtures';
 import { validateLogin, validateMember, validateRegistration } from './validation';
 
-// Ainda sem handler: as próximas tasks substituem cada um destes.
-const pending = async (): Promise<never> => notYet();
+// Sem sessão não há o que avançar; aceitar e recusar avançam depois de achar a entrada.
+const SKIP_ADVANCE: readonly (keyof ApiServices)[] = ['login', 'register', 'acceptOffer', 'declineOffer'];
 
 export function createMockApi(options: MockOptions = {}): ApiServices {
   return mockApiFor(createMockContext(options));
@@ -48,7 +48,7 @@ export function mockApiFor(ctx: MockContext): ApiServices {
     return { page, page_size };
   }
 
-  return {
+  const services: ApiServices = {
     async login(email, password) {
       await wait();
       const normalized = validateLogin(email, password);
@@ -130,7 +130,16 @@ export function mockApiFor(ctx: MockContext): ApiServices {
     ...scheduleHandlers(ctx),
     ...bookingHandlers(ctx),
     ...waitlistHandlers(ctx),
-    acceptOffer: pending,
-    declineOffer: pending,
   };
+  // Como um job no servidor: antes de cada chamada autenticada, ofertas vencidas passam ao próximo da fila.
+  const handlers = services as unknown as Record<string, (...args: unknown[]) => Promise<unknown>>;
+  for (const key of Object.keys(handlers)) {
+    if (SKIP_ADVANCE.includes(key as keyof ApiServices)) continue;
+    const handler = handlers[key];
+    handlers[key] = (...args) => {
+      advanceOffers(ctx);
+      return handler(...args);
+    };
+  }
+  return services;
 }

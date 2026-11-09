@@ -1,12 +1,20 @@
 import { ApiError } from '../api/error';
 import type { ApiServices, Court, Slot } from '../api/types';
 import { fromClubLocal, nextClubDays } from '../lib/club-time';
-import type { MockContext } from './context';
+import type { MockContext, MockWaitlistEntry } from './context';
 
 const HOUR = 3600000;
 const FIRST_HOUR = 7;
 const LAST_HOUR = 21;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Fila de um horário, por ordem de chegada (empate pelo id). */
+export function queueFor(ctx: MockContext, courtId: number, startsAt: string): MockWaitlistEntry[] {
+  const start = Date.parse(startsAt);
+  return ctx.db.waitlist
+    .filter((item) => item.court_id === courtId && Date.parse(item.starts_at) === start)
+    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at) || a.id - b.id);
+}
 
 /**
  * Estado de um horário para um jogador. Prioridade: manutenção > mine > booked > free.

@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import type { ApiServices } from '../api/types';
 import { createMockApi } from './api';
 import { DEMO_PASSWORD, initialClubData, MOCK_DATA_KEY } from './fixtures';
 
@@ -57,16 +56,20 @@ describe('createMockApi v2', () => {
     await expect(api.listMembers(admin.token)).rejects.toMatchObject({ status: 500 });
   });
 
-  it('métodos ainda não implementados respondem 501', async () => {
-    const api = createMockApi({ delayMs: 0 });
-    const { token } = await api.login('usuario@clube.example', DEMO_PASSWORD);
-    const calls: ((a: ApiServices) => Promise<unknown>)[] = [
-      (a) => a.acceptOffer(token, 1),
-      (a) => a.declineOffer(token, 1),
-    ];
-    for (const call of calls) {
-      await expect(call(api)).rejects.toMatchObject({ name: 'ApiError', status: 501, message: 'Ainda não disponível no modo simulado.' });
-    }
+  it('toda chamada autenticada passa adiante a oferta vencida antes de responder', async () => {
+    let clock = Date.parse('2026-11-09T12:00:00-03:00');
+    const api = createMockApi({ delayMs: 0, now: () => clock });
+    const pedro = await api.login('pedro@clube.example', DEMO_PASSWORD);
+    const ana = await api.login('admin@clube.example', DEMO_PASSWORD);
+    const bruno = await api.login('usuario@clube.example', DEMO_PASSWORD);
+    const slot = { court_id: 1, starts_at: '2026-11-10T22:00:00.000Z' };
+    const pedroEntry = await api.joinWaitlist(pedro.token, slot);
+    await api.joinWaitlist(ana.token, slot);
+    await api.cancelBooking(bruno.token, (await api.listBookings(bruno.token, 'upcoming'))[0].id);
+    clock += 31 * 60000;
+    await api.fetchCurrentUser(bruno.token);
+    await expect(api.acceptOffer(pedro.token, pedroEntry.id)).rejects.toMatchObject({ status: 404 });
+    expect((await api.listWaitlist(ana.token))[0].offer).toEqual({ expires_at: '2026-11-09T16:01:00.000Z' });
   });
 });
 

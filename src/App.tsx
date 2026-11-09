@@ -66,7 +66,7 @@ function ClubApp({ session, route, id, onLogout, onExpired }: {
       page = <NotFoundPage />;
       break;
     default:
-      page = <HomePage user={session.user} access={access} onRetry={retry} />;
+      page = <HomePage session={session} access={access} onRetry={retry} onExpired={onExpired} />;
   }
   return (
     <AppLayout session={session} route={route} access={access} onLogout={onLogout} mockNotice={mockNotice}>

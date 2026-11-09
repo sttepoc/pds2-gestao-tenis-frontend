@@ -16,7 +16,7 @@ it('os wrappers de src/api chegam à api de teste', async () => {
   // Pela API HTTP real isto falharia (sem servidor); o simulador devolve as fixtures.
   await expect(listMembers(admin.token)).resolves.toMatchObject({ meta: { total: 3 } });
   await expect(listCourts(player.token)).resolves.toHaveLength(3);
-  await expect(acceptOffer(player.token, 1)).rejects.toMatchObject({ status: 501 });
+  await expect(acceptOffer(player.token, 1)).rejects.toMatchObject({ status: 404, message: 'Entrada não encontrada.' });
 });
 
 it('o cenário vale depois do login', async () => {

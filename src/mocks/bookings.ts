@@ -2,12 +2,13 @@ import { ApiError } from '../api/error';
 import type { ApiServices, Booking, BookingInput } from '../api/types';
 import { clubDate, clubTime, nextClubDays } from '../lib/club-time';
 import type { MockBooking, MockContext } from './context';
-import { slotState } from './schedule';
+import { queueFor, slotState } from './schedule';
 
 const KEYS = ['court_id', 'starts_at', 'participant_ids'];
 const RESCHEDULE_KEYS = ['court_id', 'starts_at'];
 const HOUR = 3600000;
 const MAX_GUESTS = 3;
+export const OFFER_MINUTES = 30;
 
 function invalid(field: string, message: string): never {
   throw new ApiError('Os dados informados são inválidos.', 422, { [field]: [message] });
@@ -64,8 +65,19 @@ function assertFree(ctx: MockContext, courtId: number, iso: string, viewerId: nu
   if (state.status !== 'free') throw new ApiError('Esse horário acabou de ser reservado por outra pessoa.', 409);
 }
 
-/** Gancho para quando um horário volta a ficar livre; a Task 13 passa a oferecê-lo à fila de espera. */
-export function releaseSlot(_ctx: MockContext, _courtId: number, _startsAt: string): void {}
+/**
+ * Horário que volta a ficar livre vai para o primeiro da fila por OFFER_MINUTES.
+ * Não faz nada se já começou ou se não está livre (reserva, manutenção ou oferta pendente).
+ */
+export function releaseSlot(ctx: MockContext, courtId: number, startsAt: string): void {
+  const now = ctx.now();
+  // Visto por ninguém em particular (id 0): 'free' só se ninguém tiver o horário.
+  if (Date.parse(startsAt) <= now || slotState(ctx, courtId, startsAt, 0).status !== 'free') return;
+  const next = queueFor(ctx, courtId, startsAt).find((item) => item.offer_expires_at === null);
+  if (!next) return;
+  next.offer_expires_at = new Date(now + OFFER_MINUTES * 60000).toISOString();
+  ctx.persist();
+}
 
 export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlayers' | 'createBooking' | 'listBookings' | 'getBooking' | 'respondAttendance' | 'cancelBooking' | 'rescheduleBooking'> {
   return {

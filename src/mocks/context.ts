@@ -44,10 +44,6 @@ export type MockContext = {
   authenticate(token: string, admin?: boolean): MockAccount;
 };
 
-export const notYet = (): never => {
-  throw new ApiError('Ainda não disponível no modo simulado.', 501);
-};
-
 function isDatabase(value: unknown): value is Database {
   const db = value as Partial<Database> | null;
   return !!db && typeof db === 'object' &&
