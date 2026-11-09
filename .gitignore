@@ -1,5 +1,27 @@
+# Dependências e build
 node_modules
 dist
+
+# Variáveis de ambiente 
 .env
 .env.local
+.env.*.local
+
+# Logs
 *.log
+
+# Relatório de cobertura de testes
+coverage/
+
+# Ferramentas de IA (Claude Code, skills, planos e specs gerados)
+.claude/
+.superpowers/
+docs/superpowers/
+CLAUDE.md
+CLAUDE.local.md
+
+# Editores e sistema operacional
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
