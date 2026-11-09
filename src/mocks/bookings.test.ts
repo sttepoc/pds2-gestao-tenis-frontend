@@ -76,4 +76,37 @@ describe('bookingHandlers', () => {
     }
     expect(await api.searchPlayers(player.token, 'jogador')).toHaveLength(10);
   });
+
+  it('getBooking de reserva alheia responde igual a inexistente ou inválida', async () => {
+    const { api, mariana, pedro } = await setupTestApi({ now });
+    const a = await api.getBooking(pedro.token, 5).catch((e) => e);
+    const b = await api.getBooking(pedro.token, 999999).catch((e) => e);
+    const c = await api.getBooking(pedro.token, 'x' as never).catch((e) => e);
+    expect([a.status, a.message]).toEqual([404, 'Reserva não encontrada.']);
+    expect([b.status, b.message]).toEqual([a.status, a.message]);
+    expect([c.status, c.message]).toEqual([a.status, a.message]);
+    await expect(api.getBooking(mariana.token, 5)).resolves.toMatchObject({ id: 5, my_role: 'participant' });
+  });
+
+  it('listBookings: próximas em ordem crescente, anteriores em ordem decrescente com status calculado', async () => {
+    const { api, player, ctx } = await setupTestApi({ now });
+    ctx.db.bookings.push({
+      id: 20, court_id: 1, starts_at: '2026-11-05T13:00:00.000Z', ends_at: '2026-11-05T14:00:00.000Z',
+      status: 'cancelled', organizer_id: 2, participants: [{ user_id: 2, attendance: 'confirmed' }],
+    });
+    ctx.db.bookings.push({
+      id: 21, court_id: 1, starts_at: '2026-11-09T10:30:00.000Z', ends_at: '2026-11-09T11:30:00.000Z',
+      status: 'active', organizer_id: 4, participants: [{ user_id: 4, attendance: 'confirmed' }],
+    });
+    const upcoming = await api.listBookings(player.token, 'upcoming');
+    expect(upcoming.map((item) => item.id)).toEqual([5, 6]);
+    const past = await api.listBookings(player.token, 'past');
+    expect(past.map((item) => [item.id, item.status])).toEqual([[7, 'completed'], [20, 'cancelled']]);
+    expect(past.map((item) => item.id)).not.toContain(21);
+  });
+
+  it('listBookings valida o escopo', async () => {
+    const { api, player } = await setupTestApi({ now });
+    await expect(api.listBookings(player.token, 'x' as never)).rejects.toMatchObject({ status: 422 });
+  });
 });

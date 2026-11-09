@@ -32,6 +32,12 @@ export function HomePage({ user, access, onRetry }: { user: User; access: Member
             <p>Veja os horários das quadras e reserve o seu.</p>
             <span className="destination-action">Ver agenda <span aria-hidden="true">→</span></span>
           </a>
+          <a className="destination-card" href={routePaths.bookings}>
+            <span className="destination-tag">QUADRAS</span>
+            <h3>Minhas reservas <span aria-hidden="true">↗</span></h3>
+            <p>Acompanhe as reservas que você marcou ou recebeu.</p>
+            <span className="destination-action">Ver reservas <span aria-hidden="true">→</span></span>
+          </a>
           <a className="destination-card" href={routePaths.account}>
             <span className="destination-tag">ÁREA PESSOAL</span>
             <h3>Minha conta <span aria-hidden="true">↗</span></h3>

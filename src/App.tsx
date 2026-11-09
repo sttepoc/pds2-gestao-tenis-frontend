@@ -10,6 +10,7 @@ import { useRoute } from './hooks/useRoute';
 import { useSession } from './hooks/useSession';
 import { navigate, type Route } from './navigation';
 import { AccountPage } from './pages/AccountPage';
+import { BookingsPage } from './pages/BookingsPage';
 import { CourtsPage } from './pages/CourtsPage';
 import { HomePage } from './pages/HomePage';
 import { MembersPage } from './pages/MembersPage';
@@ -49,6 +50,9 @@ function ClubApp({ session, route, onLogout, onExpired }: {
       break;
     case 'schedule':
       page = <SchedulePage session={session} onExpired={onExpired} rescheduleId={null} />;
+      break;
+    case 'bookings':
+      page = <BookingsPage session={session} onExpired={onExpired} />;
       break;
     case 'not-found':
       page = <NotFoundPage />;

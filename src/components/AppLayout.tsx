@@ -26,6 +26,7 @@ export function AppLayout({ session, route, access, onLogout, children, mockNoti
   const links = [
     { route: 'home' as const, label: 'Início' },
     { route: 'schedule' as const, label: 'Agenda' },
+    { route: 'bookings' as const, label: 'Minhas reservas' },
     { route: 'account' as const, label: 'Minha conta' },
     ...(access.status === 'allowed' ? [
       { route: 'members' as const, label: 'Membros' },
@@ -46,7 +47,7 @@ export function AppLayout({ session, route, access, onLogout, children, mockNoti
         <p className="sidebar-caption">ÁREA DO CLUBE</p>
         <nav className="main-nav" aria-label="Navegação principal">
           {links.map((link) => (
-            <a key={link.route} href={routePaths[link.route]} aria-current={route === link.route ? 'page' : undefined}>
+            <a key={link.route} href={routePaths[link.route]} aria-current={route === link.route || (link.route === 'bookings' && route === 'booking') ? 'page' : undefined}>
               {link.label}
             </a>
           ))}

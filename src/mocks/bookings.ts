@@ -28,8 +28,38 @@ export function toBooking(ctx: MockContext, mock: MockBooking, viewerId: number)
   };
 }
 
-export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlayers' | 'createBooking'> {
+// Ativa que já terminou aparece como concluída, sem gravar isso no banco.
+function withStatus(ctx: MockContext, mock: MockBooking, viewerId: number): Booking {
+  const booking = toBooking(ctx, mock, viewerId);
+  if (mock.status === 'active' && Date.parse(mock.ends_at) <= ctx.now()) booking.status = 'completed';
+  return booking;
+}
+
+const isMine = (mock: MockBooking, viewerId: number) =>
+  mock.organizer_id === viewerId || mock.participants.some((item) => item.user_id === viewerId);
+
+export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlayers' | 'createBooking' | 'listBookings' | 'getBooking'> {
   return {
+    async listBookings(token, scope) {
+      await ctx.wait();
+      const viewer = ctx.authenticate(token).user;
+      if (scope !== 'upcoming' && scope !== 'past') invalid('scope', 'Escopo inválido.');
+      const now = ctx.now();
+      const mine = ctx.db.bookings.filter((item) => isMine(item, viewer.id));
+      const upcoming = (item: MockBooking) => item.status === 'active' && Date.parse(item.ends_at) > now;
+      const chosen = scope === 'upcoming'
+        ? mine.filter(upcoming).sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at))
+        : mine.filter((item) => !upcoming(item)).sort((a, b) => Date.parse(b.starts_at) - Date.parse(a.starts_at));
+      return chosen.map((item) => withStatus(ctx, item, viewer.id));
+    },
+    async getBooking(token, id) {
+      await ctx.wait();
+      const viewer = ctx.authenticate(token).user;
+      const found = Number.isSafeInteger(id) ? ctx.db.bookings.find((item) => item.id === id) : undefined;
+      // Mesma resposta para inexistente, inválida e de outra pessoa.
+      if (!found || !isMine(found, viewer.id)) throw new ApiError('Reserva não encontrada.', 404);
+      return withStatus(ctx, found, viewer.id);
+    },
     async searchPlayers(token, q) {
       await ctx.wait();
       const viewer = ctx.authenticate(token).user;
