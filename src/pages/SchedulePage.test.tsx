@@ -94,4 +94,79 @@ describe('SchedulePage', () => {
     const { onExpired } = renderPage(player);
     await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
   });
+  describe('reservar', () => {
+    const slot = { court_id: 2, starts_at: '2026-11-09T21:00:00.000Z', participant_ids: [] as number[] };
+
+    async function openPanel(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(await screen.findByRole('button', { name: 'Quadra 2, 18:00, livre' }));
+    }
+    async function invite(user: ReturnType<typeof userEvent.setup>, search: string, name: string) {
+      await user.type(screen.getByRole('searchbox', { name: 'Convidar jogadores' }), search);
+      await user.click(await screen.findByRole('button', { name }));
+    }
+
+    it('reservar horário livre marca "Sua reserva" e mostra link para a reserva', async () => {
+      const { player, ctx } = await setupTestApi({ now: () => NOW });
+      const user = userEvent.setup();
+      renderPage(player);
+      await openPanel(user);
+      expect(screen.getByRole('heading', { name: 'Confirmar reserva' })).toBeInTheDocument();
+      await invite(user, 'Mari', 'Mariana Silva');
+      expect(screen.getByRole('button', { name: 'Remover Mariana Silva' })).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Reservar quadra' }));
+      expect(await screen.findByRole('status')).toHaveTextContent('Reserva confirmada');
+      expect(screen.getByRole('link', { name: 'Ver reserva' })).toHaveAttribute('href', expect.stringMatching(/^#\/reservas\/\d+$/));
+      expect(screen.getByRole('button', { name: 'Quadra 2, 18:00, sua reserva' })).toBeInTheDocument();
+      expect(ctx.db.bookings.at(-1)!.participants.map((item) => item.user_id)).toEqual([2, 3]);
+    });
+
+    it('conflito mostra alerta e recarrega a agenda', async () => {
+      const { player, mariana, api } = await setupTestApi({ now: () => NOW });
+      const user = userEvent.setup();
+      renderPage(player);
+      await openPanel(user);
+      await api.createBooking(mariana.token, slot);
+      await user.click(screen.getByRole('button', { name: 'Reservar quadra' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Esse horário acabou de ser reservado por outra pessoa.');
+      expect(await screen.findByRole('button', { name: 'Quadra 2, 18:00, ocupado' })).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('Esse horário acabou de ser reservado por outra pessoa.');
+      expect(screen.getByRole('button', { name: 'Reservar quadra' })).toBeEnabled();
+    });
+
+    it('clique duplo cria uma reserva só', async () => {
+      const { player, ctx } = await setupTestApi({ now: () => NOW });
+      const user = userEvent.setup();
+      renderPage(player);
+      await openPanel(user);
+      const before = ctx.db.bookings.length;
+      await user.dblClick(screen.getByRole('button', { name: 'Reservar quadra' }));
+      expect(await screen.findByRole('status')).toHaveTextContent('Reserva confirmada');
+      expect(ctx.db.bookings).toHaveLength(before + 1);
+    });
+
+    it('não deixa convidar o quarto jogador', async () => {
+      const { player } = await setupTestApi({ now: () => NOW });
+      const user = userEvent.setup();
+      renderPage(player);
+      await openPanel(user);
+      await invite(user, 'Mari', 'Mariana Silva');
+      await invite(user, 'Pedro', 'Pedro Santos');
+      await invite(user, 'Camila', 'Camila Oliveira');
+      expect(screen.queryByRole('searchbox', { name: 'Convidar jogadores' })).not.toBeInTheDocument();
+      expect(screen.getByText('Até 3 convidados.')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Remover Pedro Santos' }));
+      expect(screen.getByRole('searchbox', { name: 'Convidar jogadores' })).toBeInTheDocument();
+    });
+
+    it('sessão expirada ao reservar chama onExpired', async () => {
+      let current = NOW;
+      const { player } = await setupTestApi({ now: () => current });
+      const user = userEvent.setup();
+      const { onExpired } = renderPage(player, () => current);
+      await openPanel(user);
+      current += 2 * 3600000; // a sessão do mock dura 1 h
+      await user.click(screen.getByRole('button', { name: 'Reservar quadra' }));
+      await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+    });
+  });
 });
