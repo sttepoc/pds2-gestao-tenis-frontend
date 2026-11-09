@@ -221,6 +221,12 @@
   cursor: not-allowed;
 }
 
+.slot--closed {
+  border: 1px solid var(--surface-tint);
+  background: var(--surface-tint);
+  cursor: not-allowed;
+}
+
 .slot.is-selected {
   outline: 3px solid var(--ink);
   outline-offset: 1px;

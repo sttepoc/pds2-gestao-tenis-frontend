@@ -34,11 +34,11 @@ describe('SchedulePage', () => {
     expect(await screen.findByRole('button', { name: 'Quadra 1, 19:00, ocupado' })).toBeInTheDocument();
   });
 
-  it('a legenda usa os quatro textos da especificação', async () => {
+  it('a legenda usa os textos da especificação e o encerrado', async () => {
     const { player } = await setupTestApi({ now: () => NOW });
     renderPage(player);
     const legend = await screen.findByRole('list', { name: 'Legenda' });
-    expect(within(legend).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Livre', 'Ocupado', 'Sua reserva', 'Manutenção']);
+    expect(within(legend).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Livre', 'Ocupado', 'Sua reserva', 'Manutenção', 'Encerrado']);
   });
 
   it('trocar o dia recarrega a grade', async () => {
@@ -71,6 +71,37 @@ describe('SchedulePage', () => {
     expect(panel).toHaveTextContent('18:00');
     await user.click(screen.getByRole('button', { name: 'Quadra 3, 17:00, em manutenção' }));
     expect(screen.getByRole('complementary', { name: 'Horário selecionado' })).toHaveTextContent('Quadra em manutenção nesse horário.');
+  });
+
+  it('horário livre de hoje que já começou aparece encerrado e não abre o painel', async () => {
+    const { player } = await setupTestApi({ now: () => NOW }); // 12:00 de hoje
+    const user = userEvent.setup();
+    renderPage(player);
+    const past = await screen.findByRole('button', { name: 'Quadra 1, 08:00, encerrado' });
+    expect(past).toHaveAttribute('aria-disabled', 'true');
+    expect(past).not.toHaveAttribute('aria-pressed');
+    expect(screen.getByRole('button', { name: 'Quadra 2, 12:00, encerrado' })).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('button', { name: 'Quadra 2, 13:00, livre' })).not.toHaveAttribute('aria-disabled');
+    await user.click(past);
+    expect(screen.queryByRole('complementary', { name: 'Horário selecionado' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /TER 10/ }));
+    expect(await screen.findByRole('button', { name: 'Quadra 1, 08:00, livre' })).toBeInTheDocument();
+  });
+
+  it('horário escolhido que passa a ter começado troca o formulário por aviso', async () => {
+    let clock = Date.parse('2026-11-09T12:59:00-03:00');
+    const now = () => clock;
+    const { player } = await setupTestApi({ now });
+    const user = userEvent.setup();
+    const view = renderPage(player, now);
+    await user.click(await screen.findByRole('button', { name: 'Quadra 2, 13:00, livre' }));
+    expect(screen.getByRole('form', { name: 'Reservar Quadra 2' })).toBeInTheDocument();
+    clock = Date.parse('2026-11-09T13:00:00-03:00');
+    view.rerender(<SchedulePage session={player} onExpired={view.onExpired} rescheduleId={null} now={now} />);
+    const panel = screen.getByRole('complementary', { name: 'Horário selecionado' });
+    expect(panel).toHaveTextContent('Esse horário já passou.');
+    expect(screen.queryByRole('form', { name: 'Reservar Quadra 2' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Quadra 2, 13:00, encerrado' })).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('sem quadras mostra o convite vazio', async () => {
@@ -256,6 +287,18 @@ describe('SchedulePage', () => {
       await vi.waitFor(() => expect(window.location.hash).toBe('#/reservas/5'));
       const moved = ctx.db.bookings.find((item) => item.id === 5)!;
       expect(moved).toMatchObject({ court_id: 2, starts_at: '2026-11-10T23:00:00.000Z' });
+    });
+
+    it('horário de hoje que já começou aparece encerrado e não abre a remarcação', async () => {
+      const { player } = await setupTestApi({ now: () => NOW });
+      const user = userEvent.setup();
+      renderPage(player, () => NOW, 5);
+      await user.click(await screen.findByRole('button', { name: /SEG 09/ }));
+      const past = await screen.findByRole('button', { name: 'Quadra 2, 09:00, encerrado' });
+      expect(past).toHaveAttribute('aria-disabled', 'true');
+      await user.click(past);
+      expect(screen.queryByRole('complementary', { name: 'Horário selecionado' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Confirmar novo horário' })).not.toBeInTheDocument();
     });
 
     it('o horário atual da reserva não abre nada', async () => {

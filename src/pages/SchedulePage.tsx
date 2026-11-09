@@ -6,7 +6,7 @@ import { BookingPanel } from '../components/BookingPanel';
 import { RescheduleBanner } from '../components/RescheduleBanner';
 import { ReschedulePanel } from '../components/ReschedulePanel';
 import { DayStrip } from '../components/DayStrip';
-import { ScheduleGrid } from '../components/ScheduleGrid';
+import { isClosed, ScheduleGrid } from '../components/ScheduleGrid';
 import { WaitlistPanel } from '../components/WaitlistPanel';
 import { useLoad } from '../hooks/useLoad';
 import { clubDate, clubTime, formatClubDateTime, nextClubDays } from '../lib/club-time';
@@ -93,6 +93,8 @@ function Agenda({ session, onExpired, booking, now = Date.now }: Omit<Props, 're
 
   function renderPanel(slot: Slot, courtName: string): ReactNode {
     if (slot.status === 'maintenance') return <p>Quadra em manutenção nesse horário.</p>;
+    // Escolhido antes de começar: o relógio andou e o formulário não volta mais.
+    if (isClosed(slot, now())) return <p>Esse horário já passou.</p>;
     // Antes mesmo da recarga: o formulário some assim que a reserva é criada, sem segundo envio.
     if (booked && booked.court.id === slot.court_id && Date.parse(booked.starts_at) === Date.parse(slot.starts_at)) {
       return (
@@ -154,7 +156,7 @@ function Agenda({ session, onExpired, booking, now = Date.now }: Omit<Props, 're
       <div className="schedule-layout">
         <ScheduleGrid
           schedule={schedule} selected={selected} onSelect={select}
-          activeCourtId={activeCourtId} onCourtChange={setCourtId}
+          activeCourtId={activeCourtId} onCourtChange={setCourtId} now={now()}
         />
         {slot && court && (
           <aside className="side-panel" aria-label="Horário selecionado">
