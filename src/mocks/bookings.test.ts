@@ -50,6 +50,17 @@ describe('bookingHandlers', () => {
       .rejects.toMatchObject({ status: 422, message: 'Esse horário já passou.' });
   });
 
+  it('horário fora da hora cheia (segundos ou milissegundos) → 422 e não passa por cima de outra reserva', async () => {
+    const { api, mariana } = await setupTestApi({ now });
+    const offHour = { status: 422, fieldErrors: { starts_at: ['Esse horário está fora da agenda.'] } };
+    // Reserva 5 de Bruno: Quadra 1, amanhã 19:00 (22:00Z).
+    await expect(api.createBooking(mariana.token, { court_id: 1, starts_at: '2026-11-10T22:00:30.000Z', participant_ids: [] }))
+      .rejects.toMatchObject(offHour);
+    await expect(api.createBooking(mariana.token, { court_id: 1, starts_at: '2026-11-10T22:00:00.001Z', participant_ids: [] }))
+      .rejects.toMatchObject(offHour);
+    expect(await api.listBookings(mariana.token, 'upcoming')).toHaveLength(1);
+  });
+
   it('manutenção → 409 com mensagem própria', async () => {
     const { api, player } = await setupTestApi({ now });
     await expect(api.createBooking(player.token, { court_id: 3, starts_at: '2026-11-09T20:00:00.000Z', participant_ids: [] }))
@@ -224,6 +235,15 @@ describe('bookingHandlers', () => {
       await expect(api.rescheduleBooking(player.token, 5, { ...target, organizer_id: 3 } as never))
         .rejects.toMatchObject({ status: 422 });
       expect((await api.getBooking(player.token, 5)).starts_at).toBe('2026-11-10T22:00:00.000Z');
+    });
+
+    it('novo horário fora da hora cheia → 422 sem mexer na reserva', async () => {
+      const { api, player } = await setupTestApi({ now });
+      await expect(api.rescheduleBooking(player.token, 5, { court_id: 2, starts_at: '2026-11-10T23:00:30.000Z' }))
+        .rejects.toMatchObject({ status: 422, fieldErrors: { starts_at: ['Esse horário está fora da agenda.'] } });
+      await expect(api.rescheduleBooking(player.token, 5, { court_id: 1, starts_at: '2026-11-10T22:00:00.500Z' }))
+        .rejects.toMatchObject({ status: 422, fieldErrors: { starts_at: ['Esse horário está fora da agenda.'] } });
+      expect(await api.getBooking(player.token, 5)).toMatchObject({ court: { id: 1 }, starts_at: '2026-11-10T22:00:00.000Z' });
     });
   });
 });

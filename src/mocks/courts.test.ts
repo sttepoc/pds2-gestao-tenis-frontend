@@ -130,6 +130,20 @@ describe('courtHandlers', () => {
       await expect(api.addMaintenance(admin.token, 2, window)).resolves.toBeDefined();
     });
 
+    it('reserva que já terminou ou já começou não conta nem é cancelada', async () => {
+      const { api, admin, ctx } = await setupTestApi({ now: () => NOW }); // 12:00 de hoje
+      const add = (id: number, starts_at: string, ends_at: string) => ctx.db.bookings.push({
+        id, court_id: 2, starts_at, ends_at, status: 'active', organizer_id: 2, participants: [{ user_id: 2, attendance: 'confirmed' }],
+      });
+      add(42, '2026-11-09T11:00:00.000Z', '2026-11-09T12:00:00.000Z'); // 08:00, já terminou
+      add(43, '2026-11-09T15:00:00.000Z', '2026-11-09T16:00:00.000Z'); // 12:00, em andamento
+      add(44, '2026-11-09T18:00:00.000Z', '2026-11-09T19:00:00.000Z'); // 15:00, futura
+      const today = { starts_at: '2026-11-09T07:00:00-03:00', ends_at: '2026-11-09T16:00:00-03:00', reason: 'Reforma' };
+      await expect(api.addMaintenance(admin.token, 2, today)).rejects.toMatchObject({ status: 409, message: 'Há 1 reserva(s) nesse período.' });
+      await api.addMaintenance(admin.token, 2, { ...today, cancel_bookings: true });
+      expect([42, 43, 44].map((id) => ctx.db.bookings.find((item) => item.id === id)?.status)).toEqual(['active', 'active', 'cancelled']);
+    });
+
     it('janela que só encosta na reserva (fim = início) não conflita', async () => {
       const { api, admin } = await setupTestApi({ now: () => NOW });
       await expect(api.addMaintenance(admin.token, 1, { ...window, ends_at: '2026-11-10T19:00:00-03:00' })).resolves.toBeDefined();

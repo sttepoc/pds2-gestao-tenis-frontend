@@ -52,7 +52,8 @@ function parseSlot(ctx: MockContext, input: object, keys: string[]) {
   if (Number.isNaN(start)) invalid('starts_at', 'Escolha um horário válido.');
   const iso = new Date(start).toISOString();
   const time = clubTime(iso);
-  if (!nextClubDays(ctx.now(), 7).includes(clubDate(start)) || time < '07:00' || time > '21:00' || !time.endsWith(':00')) {
+  // Hora cheia exata (sem segundos nem ms): conflitos comparam o início por igualdade.
+  if (start % HOUR !== 0 || !nextClubDays(ctx.now(), 7).includes(clubDate(start)) || time < '07:00' || time > '21:00') {
     invalid('starts_at', 'Esse horário está fora da agenda.');
   }
   if (start <= ctx.now()) throw new ApiError('Esse horário já passou.', 422, { starts_at: ['Esse horário já passou.'] });
@@ -66,7 +67,7 @@ function assertFree(ctx: MockContext, courtId: number, iso: string, viewerId: nu
 }
 
 /**
- * Horário que volta a ficar livre vai para o primeiro da fila por OFFER_MINUTES.
+ * Horário que volta a ficar livre vai para o primeiro da fila por OFFER_MINUTES (ou até o início, se vier antes).
  * Não faz nada se já começou ou se não está livre (reserva, manutenção ou oferta pendente).
  */
 export function releaseSlot(ctx: MockContext, courtId: number, startsAt: string): void {
@@ -75,7 +76,8 @@ export function releaseSlot(ctx: MockContext, courtId: number, startsAt: string)
   if (Date.parse(startsAt) <= now || slotState(ctx, courtId, startsAt, 0).status !== 'free') return;
   const next = queueFor(ctx, courtId, startsAt).find((item) => item.offer_expires_at === null);
   if (!next) return;
-  next.offer_expires_at = new Date(now + OFFER_MINUTES * 60000).toISOString();
+  // A oferta nunca passa do início do horário.
+  next.offer_expires_at = new Date(Math.min(now + OFFER_MINUTES * 60000, Date.parse(startsAt))).toISOString();
   ctx.persist();
 }
 

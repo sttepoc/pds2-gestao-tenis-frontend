@@ -33,6 +33,12 @@ describe('waitlistHandlers', () => {
       .rejects.toMatchObject({ status: 422, message: 'Esse horário não aceita fila.' });
   });
 
+  it('horário fora da hora cheia → 422 mesmo em cima de uma reserva', async () => {
+    const { api, pedro } = await setupTestApi({ now });
+    await expect(api.joinWaitlist(pedro.token, { court_id: 1, starts_at: '2026-11-10T22:00:30.000Z' }))
+      .rejects.toMatchObject({ status: 422, message: 'Esse horário não aceita fila.' });
+  });
+
   it('reserva própria, horário que já começou e manutenção → 422', async () => {
     const { api, mariana, pedro, ctx } = await setupTestApi({ now });
     await expect(api.joinWaitlist(mariana.token, taken)).rejects.toMatchObject({ status: 422 });
@@ -113,6 +119,16 @@ describe('oferta automática da vaga liberada', () => {
     const { api, pedro, admin } = await released();
     expect((await api.listWaitlist(pedro.token))[0]).toMatchObject({ position: 1, offer: { expires_at: '2026-11-09T17:30:00.000Z' } });
     expect((await api.listWaitlist(admin.token))[0]).toMatchObject({ position: 2, offer: null });
+  });
+
+  it('cancelar perto do início: a oferta vence no início do horário, não depois', async () => {
+    let clock = NOW;
+    const { api, pedro, player, ctx } = await setupTestApi({ now: () => clock });
+    longSessions(ctx);
+    await api.joinWaitlist(pedro.token, taken);
+    clock = Date.parse('2026-11-10T18:45:00-03:00');
+    await api.cancelBooking(player.token, 5);
+    expect((await api.listWaitlist(pedro.token))[0].offer).toEqual({ expires_at: '2026-11-10T22:00:00.000Z' }); // 19:00
   });
 
   it('remarcar oferece o horário antigo ao primeiro da fila', async () => {

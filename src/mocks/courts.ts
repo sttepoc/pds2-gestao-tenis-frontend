@@ -96,9 +96,10 @@ export function courtHandlers(ctx: MockContext): Pick<ApiServices, 'listCourts' 
         invalid('cancel_bookings', 'Valor inválido.');
       }
       const court = findCourt(id);
-      // Sobreposição: início < fim do outro e início do outro < fim.
+      // Sobreposição: início < fim do outro e início do outro < fim. Só reservas que ainda não começaram.
+      const now = ctx.now();
       const affected = ctx.db.bookings.filter((item) => item.court_id === court.id && item.status === 'active'
-        && start < Date.parse(item.ends_at) && Date.parse(item.starts_at) < end);
+        && Date.parse(item.starts_at) > now && start < Date.parse(item.ends_at) && Date.parse(item.starts_at) < end);
       if (affected.length > 0 && input.cancel_bookings !== true) {
         const message = `Há ${affected.length} reserva(s) nesse período.`;
         throw new ApiError(message, 409, { cancel_bookings: [message] });
