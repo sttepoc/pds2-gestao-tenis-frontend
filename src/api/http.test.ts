@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { request } from './http';
+import { pathId, request } from './http';
 
 // fetch é a fronteira externa, então o stub é legítimo aqui.
 describe('request', () => {
@@ -28,5 +28,12 @@ describe('request', () => {
   it('devolve o corpo JSON em sucesso', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 })));
     await expect(request('/x')).resolves.toEqual({ ok: true });
+  });
+});
+
+describe('pathId', () => {
+  it('aceita inteiro positivo', () => expect(pathId(12)).toBe('12'));
+  it.each([0, -1, 1.5, NaN, 2 ** 53])('pathId(%s) lança 422', (id) => {
+    expect(() => pathId(id)).toThrow(expect.objectContaining({ status: 422 }));
   });
 });

@@ -56,7 +56,7 @@ function ClubApp({ session, route, onLogout, onExpired }: {
 
 export function App() {
   const auth = useSession();
-  const route = useRoute();
+  const { route } = useRoute();
   const [leaving, startLeaving] = useTransition();
 
   useEffect(() => {
@@ -65,7 +65,8 @@ export function App() {
     }
     const titles = {
       home: 'Início', account: 'Minha conta', members: 'Membros',
-      login: 'Entrar', 'not-found': 'Página não encontrada',
+      courts: 'Quadras', schedule: 'Agenda', reschedule: 'Remarcar', bookings: 'Minhas reservas',
+      booking: 'Reserva', login: 'Entrar', 'not-found': 'Página não encontrada',
     };
     const title = auth.state.status === 'authenticated' ? titles[route]
       : auth.state.status === 'anonymous' ? 'Entrar' : 'Verificar sessão';

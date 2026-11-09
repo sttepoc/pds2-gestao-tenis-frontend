@@ -27,3 +27,8 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
   const error = body as { message?: string; errors?: Record<string, string[]> };
   throw new ApiError(error.message ?? SERVER_UNAVAILABLE, response.status, error.errors ?? {});
 }
+
+export function pathId(id: number): string {
+  if (!Number.isSafeInteger(id) || id <= 0) throw new ApiError('Identificador inválido.', 422);
+  return String(id);
+}
