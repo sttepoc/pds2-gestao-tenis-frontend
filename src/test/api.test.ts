@@ -16,7 +16,7 @@ it('os wrappers de src/api chegam à api de teste', async () => {
   const { admin, player } = await setupTestApi();
   // Pela API HTTP real isto falharia (sem servidor); o simulador devolve as fixtures.
   await expect(listMembers(admin.token)).resolves.toMatchObject({ meta: { total: 3 } });
-  await expect(listCourts(player.token)).rejects.toMatchObject({ status: 501 });
+  await expect(listCourts(player.token)).resolves.toHaveLength(3);
   await expect(searchPlayers(player.token, 'ma')).rejects.toMatchObject({ status: 501 });
   await expect(listWaitlist(player.token)).rejects.toMatchObject({ status: 501 });
 });

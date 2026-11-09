@@ -26,7 +26,10 @@ export function AppLayout({ session, route, access, onLogout, children, mockNoti
   const links = [
     { route: 'home' as const, label: 'Início' },
     { route: 'account' as const, label: 'Minha conta' },
-    ...(access.status === 'allowed' ? [{ route: 'members' as const, label: 'Membros' }] : []),
+    ...(access.status === 'allowed' ? [
+      { route: 'members' as const, label: 'Membros' },
+      { route: 'courts' as const, label: 'Quadras' },
+    ] : []),
   ];
 
   return (

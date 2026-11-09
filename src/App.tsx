@@ -10,10 +10,12 @@ import { useRoute } from './hooks/useRoute';
 import { useSession } from './hooks/useSession';
 import { navigate, type Route } from './navigation';
 import { AccountPage } from './pages/AccountPage';
+import { CourtsPage } from './pages/CourtsPage';
 import { HomePage } from './pages/HomePage';
 import { MembersPage } from './pages/MembersPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import './styles/app.css';
+import './styles/booking.css';
 
 const backdrop = <CourtBackdrop />;
 const intro = (
@@ -40,6 +42,9 @@ function ClubApp({ session, route, onLogout, onExpired }: {
       break;
     case 'members':
       page = <MembersPage access={access} onRetry={retry} />;
+      break;
+    case 'courts':
+      page = <CourtsPage session={session} access={access} onRetry={retry} onExpired={onExpired} />;
       break;
     case 'not-found':
       page = <NotFoundPage />;

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ApiServices } from '../api/types';
 import { createMockApi } from './api';
-import { createMockContext } from './context';
 import { DEMO_PASSWORD, initialClubData, MOCK_DATA_KEY } from './fixtures';
 
 function memoryStorage(entries: Record<string, string> = {}) {
@@ -25,11 +24,10 @@ describe('createMockApi v2', () => {
 
   it('ignora dados v1 salvos e usa as fixtures v2', async () => {
     const storage = memoryStorage({ 'clube-tenis.mock-data.v1': v1Data, 'clube-tenis.mock-data.v2': v1Data });
-    const ctx = createMockContext({ storage });
-    expect(ctx.db.courts.map((court) => court.name)).toEqual(['Quadra 1', 'Quadra 2', 'Quadra 3']);
-
     const api = createMockApi({ delayMs: 0, storage });
     const admin = await api.login('admin@clube.example', DEMO_PASSWORD);
+    const courts = await api.listCourts(admin.token);
+    expect(courts.map((court) => court.name)).toEqual(['Quadra 1', 'Quadra 2', 'Quadra 3']);
     const members = await api.listMembers(admin.token);
     expect(members.data.map((member) => member.name)).toEqual(['Mariana Silva', 'Pedro Santos', 'Camila Oliveira']);
   });
@@ -64,9 +62,6 @@ describe('createMockApi v2', () => {
     const { token } = await api.login('usuario@clube.example', DEMO_PASSWORD);
     const slot = { court_id: 1, starts_at: '2026-11-10T22:00:00.000Z' };
     const calls: ((a: ApiServices) => Promise<unknown>)[] = [
-      (a) => a.listCourts(token),
-      (a) => a.createCourt(token, { name: 'Quadra 4', surface: 'grass', covered: false }),
-      (a) => a.updateCourt(token, 1, { name: 'Central' }),
       (a) => a.addMaintenance(token, 1, { starts_at: 'A', ends_at: 'B', reason: 'Rede' }),
       (a) => a.removeMaintenance(token, 3, 4),
       (a) => a.getSchedule(token, '2026-11-10'),

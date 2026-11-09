@@ -1,0 +1,92 @@
+/* Telas de quadras, agenda e reservas. */
+.court-new {
+  width: auto;
+  margin-bottom: 1.25rem;
+  padding-inline: 1.5rem;
+}
+
+.court-form {
+  margin-bottom: 1.25rem;
+}
+
+.court-form h2 {
+  margin: 0 0 1rem;
+}
+
+.field select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: white;
+  color: var(--ink);
+  font: inherit;
+}
+
+.field select:focus-visible {
+  outline: 3px solid var(--court);
+  outline-offset: 2px;
+}
+
+.field--check {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.field--check input {
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: var(--court);
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.form-actions .submit {
+  width: auto;
+}
+
+.court-card {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border: 1px solid #d7e0ed;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.court-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.court-card-head h3 {
+  margin: 0;
+  font-size: 1.375rem;
+  font-stretch: 85%;
+  overflow-wrap: anywhere;
+}
+
+.court-card-meta {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 640px) {
+  .court-card {
+    padding: 1.25rem;
+  }
+}

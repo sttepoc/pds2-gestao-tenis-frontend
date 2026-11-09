@@ -1,5 +1,6 @@
 import { ApiError } from '../api/error';
 import type { ApiServices, Member, MemberQuery } from '../api/types';
+import { courtHandlers } from './courts';
 import { createMockContext, notYet, type MockContext, type MockOptions } from './context';
 import { DEMO_PASSWORD } from './fixtures';
 import { validateLogin, validateMember, validateRegistration } from './validation';
@@ -122,9 +123,7 @@ export function mockApiFor(ctx: MockContext): ApiServices {
       ctx.db.members = ctx.db.members.filter((item) => item.id !== id);
       persist();
     },
-    listCourts: pending,
-    createCourt: pending,
-    updateCourt: pending,
+    ...courtHandlers(ctx),
     addMaintenance: pending,
     removeMaintenance: pending,
     getSchedule: pending,
