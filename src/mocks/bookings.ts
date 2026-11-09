@@ -38,7 +38,7 @@ function withStatus(ctx: MockContext, mock: MockBooking, viewerId: number): Book
 const isMine = (mock: MockBooking, viewerId: number) =>
   mock.organizer_id === viewerId || mock.participants.some((item) => item.user_id === viewerId);
 
-export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlayers' | 'createBooking' | 'listBookings' | 'getBooking'> {
+export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlayers' | 'createBooking' | 'listBookings' | 'getBooking' | 'respondAttendance'> {
   return {
     async listBookings(token, scope) {
       await ctx.wait();
@@ -59,6 +59,21 @@ export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlay
       // Mesma resposta para inexistente, inválida e de outra pessoa.
       if (!found || !isMine(found, viewer.id)) throw new ApiError('Reserva não encontrada.', 404);
       return withStatus(ctx, found, viewer.id);
+    },
+    async respondAttendance(token, id, response) {
+      await ctx.wait();
+      const viewer = ctx.authenticate(token).user;
+      const found = Number.isSafeInteger(id) ? ctx.db.bookings.find((item) => item.id === id) : undefined;
+      if (!found || !isMine(found, viewer.id)) throw new ApiError('Reserva não encontrada.', 404);
+      if (found.organizer_id === viewer.id) throw new ApiError('Quem organiza já está confirmado.', 403);
+      if (response !== 'confirmed' && response !== 'declined') invalid('response', 'Resposta inválida.');
+      if (found.status !== 'active' || Date.parse(found.starts_at) <= ctx.now()) {
+        throw new ApiError('Essa reserva já começou ou foi cancelada.', 422);
+      }
+      const mine = found.participants.find((item) => item.user_id === viewer.id);
+      if (mine) mine.attendance = response;
+      ctx.persist();
+      return toBooking(ctx, found, viewer.id);
     },
     async searchPlayers(token, q) {
       await ctx.wait();

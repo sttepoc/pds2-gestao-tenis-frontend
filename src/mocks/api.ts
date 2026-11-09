@@ -130,7 +130,6 @@ export function mockApiFor(ctx: MockContext): ApiServices {
     ...bookingHandlers(ctx),
     cancelBooking: pending,
     rescheduleBooking: pending,
-    respondAttendance: pending,
     listWaitlist: pending,
     joinWaitlist: pending,
     leaveWaitlist: pending,

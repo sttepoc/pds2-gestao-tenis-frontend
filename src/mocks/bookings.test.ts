@@ -109,4 +109,38 @@ describe('bookingHandlers', () => {
     const { api, player } = await setupTestApi({ now });
     await expect(api.listBookings(player.token, 'x' as never)).rejects.toMatchObject({ status: 422 });
   });
+
+  it('respondAttendance: convidado confirma e recusa', async () => {
+    const { api, mariana, player } = await setupTestApi({ now });
+    const confirmed = await api.respondAttendance(mariana.token, 5, 'confirmed');
+    expect(confirmed.my_role).toBe('participant');
+    expect(confirmed.participants.map((item) => item.attendance)).toEqual(['confirmed', 'confirmed']);
+    const declined = await api.respondAttendance(mariana.token, 5, 'declined');
+    expect(declined.participants[1].attendance).toBe('declined');
+    expect((await api.getBooking(player.token, 5)).participants[1].attendance).toBe('declined');
+  });
+
+  it('respondAttendance: organizador → 403; não envolvido ou inexistente → 404', async () => {
+    const { api, player, pedro } = await setupTestApi({ now });
+    await expect(api.respondAttendance(player.token, 5, 'declined'))
+      .rejects.toMatchObject({ status: 403, message: 'Quem organiza já está confirmado.' });
+    await expect(api.respondAttendance(pedro.token, 5, 'confirmed'))
+      .rejects.toMatchObject({ status: 404, message: 'Reserva não encontrada.' });
+    await expect(api.respondAttendance(pedro.token, 9999, 'confirmed')).rejects.toMatchObject({ status: 404 });
+    await expect(api.respondAttendance(pedro.token, Number.NaN, 'confirmed')).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('respondAttendance: só reserva ativa e futura; resposta válida', async () => {
+    const { api, player, mariana, ctx } = await setupTestApi({ now });
+    await expect(api.respondAttendance(mariana.token, 5, 'pending' as never)).rejects.toMatchObject({ status: 422 });
+    await expect(api.respondAttendance(mariana.token, 5, 'x' as never)).rejects.toMatchObject({ status: 422 });
+    ctx.db.bookings.find((item) => item.id === 5)!.status = 'cancelled';
+    await expect(api.respondAttendance(mariana.token, 5, 'confirmed'))
+      .rejects.toMatchObject({ status: 422, message: 'Essa reserva já começou ou foi cancelada.' });
+    ctx.db.bookings.push({
+      id: 40, court_id: 1, starts_at: '2026-11-09T12:00:00.000Z', ends_at: '2026-11-09T13:00:00.000Z',
+      status: 'active', organizer_id: 3, participants: [{ user_id: 3, attendance: 'confirmed' }, { user_id: 2, attendance: 'pending' }],
+    });
+    await expect(api.respondAttendance(player.token, 40, 'confirmed')).rejects.toMatchObject({ status: 422 });
+  });
 });

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { listBookings } from '../api/bookings';
 import type { Booking, Session } from '../api/types';
+import { AttendanceActions } from '../components/AttendanceActions';
 import { BookingCard } from '../components/BookingCard';
 import { panelId, tabId, Tabs } from '../components/Tabs';
 import { useLoad } from '../hooks/useLoad';
@@ -24,7 +25,7 @@ const empty: Record<Scope, string> = { upcoming: 'Nenhuma reserva marcada.', pas
 export function BookingsPage({ session, onExpired }: Props) {
   const [tab, setTab] = useState<string>('upcoming');
   const scope = tab as Scope;
-  const { state, reload } = useLoad(
+  const { state, reload, setData } = useLoad(
     `bookings:${scope}`,
     async () => ({ scope, items: await listBookings(session.token, scope) }),
     onExpired,
@@ -52,7 +53,17 @@ export function BookingsPage({ session, onExpired }: Props) {
         </div>
       );
     }
-    return <div className="booking-list">{items.map((item) => <BookingCard key={item.id} booking={item} />)}</div>;
+    const replace = (updated: Booking) =>
+      setData({ scope, items: items.map((item) => (item.id === updated.id ? updated : item)) });
+    return (
+      <div className="booking-list">
+        {items.map((item) => (
+          <BookingCard key={item.id} booking={item}>
+            <AttendanceActions booking={item} session={session} onChange={replace} onExpired={onExpired} />
+          </BookingCard>
+        ))}
+      </div>
+    );
   }
 
   return (

@@ -103,3 +103,22 @@ describe('BookingsPage', () => {
     await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
   });
 });
+
+describe('BookingsPage presença', () => {
+  it('convidado responde no próprio card e a contagem muda', async () => {
+    const { mariana } = await setupTestApi({ now: () => NOW });
+    const user = userEvent.setup();
+    renderPage(mariana);
+    const card = (await screen.findByRole('link', { name: 'Quadra 1 · 19:00–20:00' })).closest('article')!;
+    await user.click(within(card).getByRole('button', { name: 'Confirmar presença' }));
+    expect(await within(card).findByText('Presença confirmada')).toBeInTheDocument();
+    expect(within(card).getByText('2 de 2 confirmaram')).toBeInTheDocument();
+  });
+
+  it('organizador não vê botões de presença no card', async () => {
+    const { player } = await setupTestApi({ now: () => NOW });
+    renderPage(player);
+    const card = (await screen.findByRole('link', { name: 'Quadra 1 · 19:00–20:00' })).closest('article')!;
+    expect(within(card).queryByRole('button')).not.toBeInTheDocument();
+  });
+});

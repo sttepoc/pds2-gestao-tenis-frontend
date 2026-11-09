@@ -10,6 +10,7 @@ import { useRoute } from './hooks/useRoute';
 import { useSession } from './hooks/useSession';
 import { navigate, type Route } from './navigation';
 import { AccountPage } from './pages/AccountPage';
+import { BookingDetailPage } from './pages/BookingDetailPage';
 import { BookingsPage } from './pages/BookingsPage';
 import { CourtsPage } from './pages/CourtsPage';
 import { HomePage } from './pages/HomePage';
@@ -30,9 +31,10 @@ const intro = (
 );
 const mockNotice = import.meta.env.DEV && USE_MOCK_API ? <MockNotice /> : undefined;
 
-function ClubApp({ session, route, onLogout, onExpired }: {
+function ClubApp({ session, route, id, onLogout, onExpired }: {
   session: Session;
   route: Route;
+  id: number | null;
   onLogout: () => Promise<void>;
   onExpired: () => void;
 }) {
@@ -54,6 +56,9 @@ function ClubApp({ session, route, onLogout, onExpired }: {
     case 'bookings':
       page = <BookingsPage session={session} onExpired={onExpired} />;
       break;
+    case 'booking':
+      page = id === null ? <NotFoundPage /> : <BookingDetailPage key={id} id={id} session={session} onExpired={onExpired} />;
+      break;
     case 'not-found':
       page = <NotFoundPage />;
       break;
@@ -69,7 +74,7 @@ function ClubApp({ session, route, onLogout, onExpired }: {
 
 export function App() {
   const auth = useSession();
-  const { route } = useRoute();
+  const { route, id } = useRoute();
   const [leaving, startLeaving] = useTransition();
 
   useEffect(() => {
@@ -133,7 +138,7 @@ export function App() {
       {backdrop}
       {auth.state.status === 'authenticated' ? (
         <ClubApp
-          key={auth.state.session.token} session={auth.state.session} route={route}
+          key={auth.state.session.token} session={auth.state.session} route={route} id={id}
           onLogout={handleLogout} onExpired={auth.endSession}
         />
       ) : (

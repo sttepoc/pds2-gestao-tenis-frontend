@@ -64,7 +64,6 @@ describe('createMockApi v2', () => {
     const calls: ((a: ApiServices) => Promise<unknown>)[] = [
       (a) => a.cancelBooking(token, 5),
       (a) => a.rescheduleBooking(token, 5, slot),
-      (a) => a.respondAttendance(token, 6, 'declined'),
       (a) => a.listWaitlist(token),
       (a) => a.joinWaitlist(token, slot),
       (a) => a.leaveWaitlist(token, 1),
