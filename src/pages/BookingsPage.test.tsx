@@ -70,12 +70,17 @@ describe('BookingsPage', () => {
     expect(past).toHaveAttribute('aria-selected', 'true');
     expect(past).toHaveFocus();
     expect(await screen.findByRole('tabpanel', { name: 'Anteriores' })).toBeInTheDocument();
+    const waitlist = screen.getByRole('tab', { name: /^Fila de espera/ });
+    await user.keyboard('{ArrowRight}');
+    expect(waitlist).toHaveFocus();
     await user.keyboard('{ArrowRight}');
     expect(upcoming).toHaveFocus();
     await user.keyboard('{End}');
-    expect(past).toHaveFocus();
+    expect(waitlist).toHaveFocus();
     await user.keyboard('{Home}');
     expect(upcoming).toHaveFocus();
+    await user.keyboard('{ArrowLeft}');
+    expect(waitlist).toHaveFocus();
     await user.keyboard('{ArrowLeft}');
     expect(past).toHaveFocus();
     expect(past).toHaveAttribute('aria-controls', screen.getByRole('tabpanel').id);
@@ -248,3 +253,56 @@ describe('BookingsPage remarcação', () => {
     expect(screen.queryByRole('link', { name: /^Remarcar/ })).not.toBeInTheDocument();
   });
 });
+
+describe('BookingsPage fila de espera', () => {
+  const taken = { court_id: 1, starts_at: '2026-11-10T22:00:00.000Z' };
+
+  it('aba Fila de espera lista quadra, horário e posição', async () => {
+    const { pedro, admin, api } = await setupTestApi({ now: () => NOW });
+    await api.joinWaitlist(admin.token, taken);
+    await api.joinWaitlist(pedro.token, taken);
+    const user = userEvent.setup();
+    renderPage(pedro);
+    const tab = await screen.findByRole('tab', { name: 'Fila de espera (1)' });
+    await user.click(tab);
+    const card = (await screen.findByText('Quadra 1')).closest('article')!;
+    expect(card).toHaveTextContent('ter., 10 de nov.');
+    expect(card).toHaveTextContent('19:00–20:00');
+    expect(within(card).getByText('2º na fila')).toBeInTheDocument();
+  });
+
+  it('sair da fila remove a entrada e atualiza a contagem', async () => {
+    const { pedro, api, ctx } = await setupTestApi({ now: () => NOW });
+    await api.joinWaitlist(pedro.token, taken);
+    const user = userEvent.setup();
+    renderPage(pedro);
+    await user.click(await screen.findByRole('tab', { name: 'Fila de espera (1)' }));
+    await user.click(await screen.findByRole('button', { name: 'Sair da fila: Quadra 1, ter., 10 de nov. 19:00' }));
+    expect(await screen.findByText('Você não está em nenhuma fila.')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Fila de espera (0)' })).toBeInTheDocument();
+    expect(ctx.db.waitlist).toHaveLength(0);
+  });
+
+  it('sem entradas mostra o estado vazio', async () => {
+    const { player } = await setupTestApi({ now: () => NOW });
+    const user = userEvent.setup();
+    renderPage(player);
+    await user.click(await screen.findByRole('tab', { name: 'Fila de espera (0)' }));
+    expect(await screen.findByText('Você não está em nenhuma fila.')).toBeInTheDocument();
+  });
+
+  it('erro ao sair da fila aparece como alerta; 401 chama onExpired', async () => {
+    const { pedro, api } = await setupTestApi({ now: () => NOW });
+    await api.joinWaitlist(pedro.token, taken);
+    api.leaveWaitlist = vi.fn().mockRejectedValueOnce(new ApiError('Entrada não encontrada.', 404)).mockRejectedValueOnce(new ApiError('x', 401));
+    const user = userEvent.setup();
+    const { onExpired } = renderPage(pedro);
+    await user.click(await screen.findByRole('tab', { name: 'Fila de espera (1)' }));
+    const leave = await screen.findByRole('button', { name: /^Sair da fila/ });
+    await user.click(leave);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Entrada não encontrada.');
+    await user.click(screen.getByRole('button', { name: /^Sair da fila/ }));
+    await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+  });
+});
+

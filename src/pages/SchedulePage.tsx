@@ -1,12 +1,13 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { getBooking, getSchedule } from '../api/bookings';
 import { ApiError } from '../api/error';
-import type { Booking, Schedule, Session, Slot, SlotRef } from '../api/types';
+import type { Booking, Schedule, Session, Slot, SlotRef, WaitlistEntry } from '../api/types';
 import { BookingPanel } from '../components/BookingPanel';
 import { RescheduleBanner } from '../components/RescheduleBanner';
 import { ReschedulePanel } from '../components/ReschedulePanel';
 import { DayStrip } from '../components/DayStrip';
 import { ScheduleGrid } from '../components/ScheduleGrid';
+import { WaitlistPanel } from '../components/WaitlistPanel';
 import { useLoad } from '../hooks/useLoad';
 import { clubDate, clubTime, formatClubDateTime, nextClubDays } from '../lib/club-time';
 import { bookingPath, routePaths } from '../navigation';
@@ -71,6 +72,7 @@ function Agenda({ session, onExpired, booking, now = Date.now }: Omit<Props, 're
   const [courtId, setCourtId] = useState<number | null>(null);
   const [booked, setBooked] = useState<Booking | null>(null);
   const [conflict, setConflict] = useState<(SlotRef & { message: string }) | null>(null);
+  const [queued, setQueued] = useState<WaitlistEntry | null>(null);
   const lastSchedule = useRef<Schedule | null>(null);
   const { state, reload } = useLoad(`schedule:${date}`, () => getSchedule(session.token, date), onExpired);
 
@@ -86,9 +88,9 @@ function Agenda({ session, onExpired, booking, now = Date.now }: Omit<Props, 're
     setSelected(item && { court_id: item.court_id, starts_at: item.starts_at });
     setBooked(null);
     setConflict(null);
+    setQueued(null);
   }
 
-  // Único ponto onde a próxima task encaixa o WaitlistPanel.
   function renderPanel(slot: Slot, courtName: string): ReactNode {
     if (slot.status === 'maintenance') return <p>Quadra em manutenção nesse horário.</p>;
     // Antes mesmo da recarga: o formulário some assim que a reserva é criada, sem segundo envio.
@@ -119,9 +121,22 @@ function Agenda({ session, onExpired, booking, now = Date.now }: Omit<Props, 're
           key={`${slot.court_id}:${slot.starts_at}`}
           slot={slot} courtName={courtName} session={session}
           conflictMessage={conflictHere ? conflict.message : ''}
+          canQueue={slot.status === 'booked'}
           onBooked={(booking) => { setConflict(null); setBooked(booking); reload(); }}
+          onQueued={(entry) => { setConflict(null); setQueued(entry); reload(); }}
           onConflict={(message) => { setConflict({ court_id: slot.court_id, starts_at: slot.starts_at, message }); reload(); }}
           onExpired={onExpired}
+        />
+      );
+    }
+    if (slot.status === 'booked' && !booking) {
+      const own = queued && queued.court.id === slot.court_id && Date.parse(queued.starts_at) === Date.parse(slot.starts_at);
+      return (
+        <WaitlistPanel
+          key={`${slot.court_id}:${slot.starts_at}`}
+          slot={slot} courtName={courtName} session={session}
+          initial={own ? { id: queued.id, position: queued.position } : null}
+          onChange={reload} onExpired={onExpired}
         />
       );
     }

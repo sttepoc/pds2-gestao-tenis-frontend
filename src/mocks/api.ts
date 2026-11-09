@@ -3,6 +3,7 @@ import type { ApiServices, Member, MemberQuery } from '../api/types';
 import { bookingHandlers } from './bookings';
 import { courtHandlers } from './courts';
 import { scheduleHandlers } from './schedule';
+import { waitlistHandlers } from './waitlist';
 import { createMockContext, notYet, type MockContext, type MockOptions } from './context';
 import { DEMO_PASSWORD } from './fixtures';
 import { validateLogin, validateMember, validateRegistration } from './validation';
@@ -128,9 +129,7 @@ export function mockApiFor(ctx: MockContext): ApiServices {
     ...courtHandlers(ctx),
     ...scheduleHandlers(ctx),
     ...bookingHandlers(ctx),
-    listWaitlist: pending,
-    joinWaitlist: pending,
-    leaveWaitlist: pending,
+    ...waitlistHandlers(ctx),
     acceptOffer: pending,
     declineOffer: pending,
   };

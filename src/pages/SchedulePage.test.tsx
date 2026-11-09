@@ -294,3 +294,89 @@ describe('SchedulePage', () => {
     });
   });
 });
+
+describe('SchedulePage fila de espera', () => {
+  async function openTaken(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(await screen.findByRole('button', { name: /TER 10/ }));
+    await user.click(await screen.findByRole('button', { name: 'Quadra 1, 19:00, ocupado' }));
+  }
+
+  it('horário ocupado mostra a posição prevista e entra na fila', async () => {
+    const { pedro, ctx } = await setupTestApi({ now: () => NOW });
+    const user = userEvent.setup();
+    renderPage(pedro);
+    await openTaken(user);
+    expect(screen.getByText('Você seria o 1º da fila')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Entrar na fila' }));
+    expect(await screen.findByText('Você é o 1º da fila')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sair da fila' })).toBeInTheDocument();
+    expect(ctx.db.waitlist).toHaveLength(1);
+  });
+
+  it('quem já está na fila vê a posição ao abrir o horário', async () => {
+    const { pedro, mariana, api } = await setupTestApi({ now: () => NOW });
+    const taken = { court_id: 1, starts_at: '2026-11-10T22:00:00.000Z' };
+    await api.joinWaitlist(mariana.token, taken).catch(() => undefined); // participante: não entra
+    await api.joinWaitlist(pedro.token, taken);
+    const user = userEvent.setup();
+    renderPage(pedro);
+    await openTaken(user);
+    expect(await screen.findByText('Você é o 1º da fila')).toBeInTheDocument();
+  });
+
+  it('sair da fila volta ao estado inicial', async () => {
+    const { pedro, ctx } = await setupTestApi({ now: () => NOW });
+    const user = userEvent.setup();
+    renderPage(pedro);
+    await openTaken(user);
+    await user.click(screen.getByRole('button', { name: 'Entrar na fila' }));
+    await user.click(await screen.findByRole('button', { name: 'Sair da fila' }));
+    expect(await screen.findByText('Você seria o 1º da fila')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Entrar na fila' })).toBeEnabled();
+    expect(ctx.db.waitlist).toHaveLength(0);
+  });
+
+  it('erro ao entrar na fila aparece no painel e sessão expirada chama onExpired', async () => {
+    const { pedro, api } = await setupTestApi({ now: () => NOW });
+    const real = api.joinWaitlist;
+    api.joinWaitlist = vi.fn().mockRejectedValueOnce(new ApiError('Você já está na fila desse horário.', 409)).mockRejectedValueOnce(new ApiError('Sessão', 401)).mockImplementation(real);
+    const user = userEvent.setup();
+    const { onExpired } = renderPage(pedro);
+    await openTaken(user);
+    await user.click(screen.getByRole('button', { name: 'Entrar na fila' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Você já está na fila desse horário.');
+    await user.click(screen.getByRole('button', { name: 'Entrar na fila' }));
+    await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+  });
+
+  it('após conflito, "Entrar na fila de espera" coloca o jogador na fila', async () => {
+    const { pedro, mariana, api, ctx } = await setupTestApi({ now: () => NOW });
+    const user = userEvent.setup();
+    renderPage(pedro);
+    await user.click(await screen.findByRole('button', { name: 'Quadra 2, 18:00, livre' }));
+    await api.createBooking(mariana.token, { court_id: 2, starts_at: '2026-11-09T21:00:00.000Z', participant_ids: [] });
+    await user.click(screen.getByRole('button', { name: 'Reservar quadra' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Esse horário acabou de ser reservado por outra pessoa.');
+    await user.click(await screen.findByRole('button', { name: 'Entrar na fila de espera' }));
+    expect(await screen.findByText('Você é o 1º da fila')).toBeInTheDocument();
+    expect(ctx.db.waitlist).toMatchObject([{ user_id: 4, court_id: 2, starts_at: '2026-11-09T21:00:00.000Z' }]);
+    expect(screen.queryByRole('button', { name: 'Entrar na fila de espera' })).not.toBeInTheDocument();
+  });
+
+  it('conflito por manutenção não oferece a fila', async () => {
+    const { pedro, ctx } = await setupTestApi({ now: () => NOW });
+    const user = userEvent.setup();
+    renderPage(pedro);
+    await user.click(await screen.findByRole('button', { name: 'Quadra 2, 18:00, livre' }));
+    ctx.db.courts.find((item) => item.id === 2)!.maintenance.push({
+      id: 77, starts_at: '2026-11-09T20:00:00.000Z', ends_at: '2026-11-09T23:00:00.000Z', reason: 'Piso',
+    });
+    await user.click(screen.getByRole('button', { name: 'Reservar quadra' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Essa quadra está em manutenção nesse horário.');
+    expect(screen.queryByRole('button', { name: 'Entrar na fila de espera' })).not.toBeInTheDocument();
+    await screen.findByRole('button', { name: 'Quadra 2, 18:00, em manutenção' });
+    expect(screen.getByRole('complementary', { name: 'Horário selecionado' })).toHaveTextContent('Quadra em manutenção nesse horário.');
+    expect(screen.queryByRole('button', { name: 'Entrar na fila de espera' })).not.toBeInTheDocument();
+  });
+});
+

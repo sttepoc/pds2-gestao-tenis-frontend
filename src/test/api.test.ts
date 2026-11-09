@@ -1,7 +1,7 @@
 import { expect, it } from 'vitest';
 import { listCourts } from '../api/courts';
 import { listMembers } from '../api/members';
-import { listWaitlist } from '../api/waitlist';
+import { acceptOffer } from '../api/waitlist';
 import { setupTestApi } from './api';
 
 it('setupTestApi entra como Ana, Bruno, Mariana e Pedro', async () => {
@@ -16,7 +16,7 @@ it('os wrappers de src/api chegam à api de teste', async () => {
   // Pela API HTTP real isto falharia (sem servidor); o simulador devolve as fixtures.
   await expect(listMembers(admin.token)).resolves.toMatchObject({ meta: { total: 3 } });
   await expect(listCourts(player.token)).resolves.toHaveLength(3);
-  await expect(listWaitlist(player.token)).rejects.toMatchObject({ status: 501 });
+  await expect(acceptOffer(player.token, 1)).rejects.toMatchObject({ status: 501 });
 });
 
 it('o cenário vale depois do login', async () => {
