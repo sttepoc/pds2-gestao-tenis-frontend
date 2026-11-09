@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Session } from '../api/types';
@@ -27,8 +27,10 @@ describe('CourtsPage', () => {
     const user = userEvent.setup();
     renderPage(admin);
     await fillAndSave(user, 'Quadra Central');
-    expect(await screen.findByRole('heading', { name: 'Quadra Central' })).toBeInTheDocument();
-    expect(screen.getAllByText('Saibro').length).toBeGreaterThan(0);
+    const heading = await screen.findByRole('heading', { name: 'Quadra Central' });
+    const card = heading.closest('article') as HTMLElement;
+    expect(within(card).getByText('Saibro')).toBeInTheDocument();
+    expect(within(card).getByText('Coberta')).toBeInTheDocument();
     expect(screen.queryByLabelText('Nome')).not.toBeInTheDocument();
   });
 
