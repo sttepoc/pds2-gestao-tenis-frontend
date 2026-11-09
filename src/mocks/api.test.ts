@@ -62,7 +62,6 @@ describe('createMockApi v2', () => {
     const { token } = await api.login('usuario@clube.example', DEMO_PASSWORD);
     const slot = { court_id: 1, starts_at: '2026-11-10T22:00:00.000Z' };
     const calls: ((a: ApiServices) => Promise<unknown>)[] = [
-      (a) => a.rescheduleBooking(token, 5, slot),
       (a) => a.listWaitlist(token),
       (a) => a.joinWaitlist(token, slot),
       (a) => a.leaveWaitlist(token, 1),

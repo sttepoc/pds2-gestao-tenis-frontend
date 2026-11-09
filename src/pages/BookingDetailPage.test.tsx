@@ -157,4 +157,14 @@ describe('BookingDetailPage reserva em andamento', () => {
     await screen.findByRole('heading', { level: 1, name: 'Quadra 2' });
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
+
+  it('organizador vê o link Remarcar; convidado não', async () => {
+    const { player, mariana } = await setupTestApi({ now: () => NOW });
+    const first = renderPage(player, 5);
+    expect(await screen.findByRole('link', { name: /^Remarcar reserva da Quadra 1/ })).toHaveAttribute('href', '#/agenda/remarcar/5');
+    first.unmount();
+    renderPage(mariana, 5);
+    await screen.findByRole('heading', { level: 1, name: 'Quadra 1' });
+    expect(screen.queryByRole('link', { name: /^Remarcar/ })).not.toBeInTheDocument();
+  });
 });

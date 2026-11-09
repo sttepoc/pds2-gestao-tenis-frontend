@@ -235,3 +235,16 @@ describe('BookingsPage reserva em andamento', () => {
     expect(within(own).queryByRole('button')).not.toBeInTheDocument();
   });
 });
+
+describe('BookingsPage remarcação', () => {
+  it('organizador de reserva futura vê o link Remarcar; convidado não', async () => {
+    const { player, mariana } = await setupTestApi({ now: () => NOW });
+    const first = renderPage(player);
+    const link = await screen.findByRole('link', { name: /^Remarcar reserva da Quadra 1 em .* 19:00$/ });
+    expect(link).toHaveAttribute('href', '#/agenda/remarcar/5');
+    first.unmount();
+    renderPage(mariana);
+    await screen.findByRole('link', { name: /Quadra 1 · 19:00/ });
+    expect(screen.queryByRole('link', { name: /^Remarcar/ })).not.toBeInTheDocument();
+  });
+});

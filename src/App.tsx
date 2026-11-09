@@ -53,6 +53,9 @@ function ClubApp({ session, route, id, onLogout, onExpired }: {
     case 'schedule':
       page = <SchedulePage session={session} onExpired={onExpired} rescheduleId={null} />;
       break;
+    case 'reschedule':
+      page = id === null ? <NotFoundPage /> : <SchedulePage key={id} session={session} onExpired={onExpired} rescheduleId={id} />;
+      break;
     case 'bookings':
       page = <BookingsPage session={session} onExpired={onExpired} />;
       break;

@@ -8,9 +8,9 @@ import { SchedulePage } from './SchedulePage';
 
 const NOW = Date.parse('2026-11-09T12:00:00-03:00');
 
-function renderPage(session: Session, now = () => NOW) {
+function renderPage(session: Session, now = () => NOW, rescheduleId: number | null = null) {
   const onExpired = vi.fn();
-  const view = render(<SchedulePage session={session} onExpired={onExpired} rescheduleId={null} now={now} />);
+  const view = render(<SchedulePage session={session} onExpired={onExpired} rescheduleId={rescheduleId} now={now} />);
   return { ...view, onExpired };
 }
 
@@ -227,6 +227,69 @@ describe('SchedulePage', () => {
       const { onExpired } = renderPage(player);
       await openPanel(user);
       await user.type(screen.getByRole('searchbox', { name: 'Convidar jogadores' }), 'Mari');
+      await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+    });
+  });
+
+  describe('remarcar', () => {
+    it('modo remarcar mostra a faixa com o horário original', async () => {
+      const { player } = await setupTestApi({ now: () => NOW });
+      renderPage(player, () => NOW, 5);
+      const banner = await screen.findByRole('region', { name: 'Remarcação em andamento' });
+      expect(banner).toHaveTextContent('Escolha o novo horário para Quadra 1 · ter., 10 de nov. · 19:00');
+      expect(within(banner).getByRole('link', { name: 'Cancelar remarcação' })).toHaveAttribute('href', '#/reservas/5');
+      // abre no dia da reserva (amanhã)
+      expect(await screen.findByRole('button', { name: /TER 10/ })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('escolher horário livre mostra De → Para e salvar leva ao detalhe', async () => {
+      const { player, ctx } = await setupTestApi({ now: () => NOW });
+      const user = userEvent.setup();
+      window.location.hash = '';
+      renderPage(player, () => NOW, 5);
+      await user.click(await screen.findByRole('button', { name: 'Quadra 2, 20:00, livre' }));
+      const panel = screen.getByRole('complementary', { name: 'Horário selecionado' });
+      expect(screen.queryByRole('heading', { name: 'Confirmar reserva' })).not.toBeInTheDocument();
+      expect(within(panel).getByText('De').nextSibling).toHaveTextContent('Quadra 1 · ter., 10 de nov. · 19:00');
+      expect(within(panel).getByText('Para').nextSibling).toHaveTextContent('Quadra 2 · ter., 10 de nov. · 20:00 às 21:00');
+      await user.click(screen.getByRole('button', { name: 'Confirmar novo horário' }));
+      await vi.waitFor(() => expect(window.location.hash).toBe('#/reservas/5'));
+      const moved = ctx.db.bookings.find((item) => item.id === 5)!;
+      expect(moved).toMatchObject({ court_id: 2, starts_at: '2026-11-10T23:00:00.000Z' });
+    });
+
+    it('o horário atual da reserva não abre nada', async () => {
+      const { player } = await setupTestApi({ now: () => NOW });
+      const user = userEvent.setup();
+      renderPage(player, () => NOW, 5);
+      await user.click(await screen.findByRole('button', { name: 'Quadra 1, 19:00, sua reserva' }));
+      expect(screen.queryByRole('complementary', { name: 'Horário selecionado' })).not.toBeInTheDocument();
+    });
+
+    it('conflito ao remarcar mostra alerta e mantém a reserva original', async () => {
+      const { player, mariana, api, ctx } = await setupTestApi({ now: () => NOW });
+      const user = userEvent.setup();
+      renderPage(player, () => NOW, 5);
+      await user.click(await screen.findByRole('button', { name: 'Quadra 2, 20:00, livre' }));
+      await api.createBooking(mariana.token, { court_id: 2, starts_at: '2026-11-10T23:00:00.000Z', participant_ids: [] });
+      await user.click(screen.getByRole('button', { name: 'Confirmar novo horário' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Esse horário acabou de ser reservado por outra pessoa.');
+      expect(await screen.findByRole('button', { name: 'Quadra 2, 20:00, ocupado' })).toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('Esse horário acabou de ser reservado por outra pessoa.');
+      expect(screen.getByRole('button', { name: 'Confirmar novo horário' })).toBeEnabled();
+      expect(ctx.db.bookings.find((item) => item.id === 5)).toMatchObject({ court_id: 1, starts_at: '2026-11-10T22:00:00.000Z' });
+    });
+
+    it('reserva de outra pessoa ou inexistente mostra "Reserva não encontrada"', async () => {
+      const { pedro } = await setupTestApi({ now: () => NOW });
+      renderPage(pedro, () => NOW, 5);
+      expect(await screen.findByRole('heading', { name: 'Reserva não encontrada' })).toBeInTheDocument();
+      expect(screen.queryByRole('region', { name: 'Remarcação em andamento' })).not.toBeInTheDocument();
+    });
+
+    it('sessão expirada ao carregar a reserva chama onExpired', async () => {
+      const { player } = await setupTestApi({ now: () => NOW, scenario: 'expired' });
+      const { onExpired } = renderPage(player, () => NOW, 5);
       await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
     });
   });

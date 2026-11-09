@@ -514,3 +514,37 @@
   flex-wrap: wrap;
   gap: 0.5rem;
 }
+
+.reschedule-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d7e0ed;
+  border-left: 4px solid var(--ball);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.reschedule-banner p {
+  margin: 0;
+}
+
+.reschedule-change {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+}
+
+.reschedule-change dt {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.reschedule-change dd {
+  margin: 0;
+}

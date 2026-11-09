@@ -4,6 +4,7 @@ import type { Booking, Session } from '../api/types';
 import { AttendanceActions } from '../components/AttendanceActions';
 import { BookingCard } from '../components/BookingCard';
 import { CancelBookingAction } from '../components/CancelBookingAction';
+import { RescheduleLink } from '../components/RescheduleLink';
 import { panelId, tabId, Tabs } from '../components/Tabs';
 import { useLoad } from '../hooks/useLoad';
 import { routePaths } from '../navigation';
@@ -71,6 +72,7 @@ export function BookingsPage({ session, onExpired, now }: Props) {
         {items.map((item) => (
           <BookingCard key={item.id} booking={item}>
             <AttendanceActions booking={item} session={session} onChange={replace} onExpired={onExpired} now={now} />
+            <RescheduleLink booking={item} now={now} />
             <CancelBookingAction booking={item} session={session} onCancelled={remove} onExpired={onExpired} now={now} />
           </BookingCard>
         ))}

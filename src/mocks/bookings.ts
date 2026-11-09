@@ -5,6 +5,7 @@ import type { MockBooking, MockContext } from './context';
 import { slotState } from './schedule';
 
 const KEYS = ['court_id', 'starts_at', 'participant_ids'];
+const RESCHEDULE_KEYS = ['court_id', 'starts_at'];
 const HOUR = 3600000;
 const MAX_GUESTS = 3;
 
@@ -38,10 +39,35 @@ function withStatus(ctx: MockContext, mock: MockBooking, viewerId: number): Book
 const isMine = (mock: MockBooking, viewerId: number) =>
   mock.organizer_id === viewerId || mock.participants.some((item) => item.user_id === viewerId);
 
+/** Valida quadra e horário de um pedido (criar ou remarcar), até "já passou". */
+function parseSlot(ctx: MockContext, input: object, keys: string[]) {
+  const { court_id, starts_at } = input as Partial<Record<'court_id' | 'starts_at', unknown>>;
+  for (const key of Object.keys(input)) {
+    if (!keys.includes(key)) invalid(key, 'Este campo não pode ser informado.');
+  }
+  const court = Number.isSafeInteger(court_id) ? ctx.db.courts.find((item) => item.id === court_id) : undefined;
+  if (!court) invalid('court_id', 'Escolha uma quadra válida.');
+  const start = typeof starts_at === 'string' ? Date.parse(starts_at) : NaN;
+  if (Number.isNaN(start)) invalid('starts_at', 'Escolha um horário válido.');
+  const iso = new Date(start).toISOString();
+  const time = clubTime(iso);
+  if (!nextClubDays(ctx.now(), 7).includes(clubDate(start)) || time < '07:00' || time > '21:00' || !time.endsWith(':00')) {
+    invalid('starts_at', 'Esse horário está fora da agenda.');
+  }
+  if (start <= ctx.now()) throw new ApiError('Esse horário já passou.', 422, { starts_at: ['Esse horário já passou.'] });
+  return { court, start, iso };
+}
+
+function assertFree(ctx: MockContext, courtId: number, iso: string, viewerId: number) {
+  const state = slotState(ctx, courtId, iso, viewerId);
+  if (state.status === 'maintenance') throw new ApiError('Essa quadra está em manutenção nesse horário.', 409);
+  if (state.status !== 'free') throw new ApiError('Esse horário acabou de ser reservado por outra pessoa.', 409);
+}
+
 /** Gancho para quando um horário volta a ficar livre; a Task 13 passa a oferecê-lo à fila de espera. */
 export function releaseSlot(_ctx: MockContext, _courtId: number, _startsAt: string): void {}
 
-export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlayers' | 'createBooking' | 'listBookings' | 'getBooking' | 'respondAttendance' | 'cancelBooking'> {
+export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlayers' | 'createBooking' | 'listBookings' | 'getBooking' | 'respondAttendance' | 'cancelBooking' | 'rescheduleBooking'> {
   return {
     async listBookings(token, scope) {
       await ctx.wait();
@@ -92,6 +118,32 @@ export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlay
       releaseSlot(ctx, found.court_id, found.starts_at);
       return toBooking(ctx, found, viewer.id);
     },
+    async rescheduleBooking(token, id, input) {
+      await ctx.wait();
+      const viewer = ctx.authenticate(token).user;
+      const found = Number.isSafeInteger(id) ? ctx.db.bookings.find((item) => item.id === id) : undefined;
+      if (!found || !isMine(found, viewer.id)) throw new ApiError('Reserva não encontrada.', 404);
+      if (found.organizer_id !== viewer.id) throw new ApiError('Só quem organiza pode remarcar a reserva.', 403);
+      if (found.status !== 'active' || Date.parse(found.starts_at) <= ctx.now()) {
+        throw new ApiError('Essa reserva já começou ou foi cancelada.', 422);
+      }
+      if (ctx.scenario === 'conflict') throw new ApiError('Esse horário acabou de ser reservado por outra pessoa.', 409);
+      const { court, start, iso } = parseSlot(ctx, input, RESCHEDULE_KEYS);
+      if (court.id === found.court_id && start === Date.parse(found.starts_at)) {
+        throw new ApiError('Escolha um horário diferente do atual.', 422, { starts_at: ['Escolha um horário diferente do atual.'] });
+      }
+      assertFree(ctx, court.id, iso, viewer.id);
+      const previous = { court_id: found.court_id, starts_at: found.starts_at };
+      found.court_id = court.id;
+      found.starts_at = iso;
+      found.ends_at = new Date(start + HOUR).toISOString();
+      for (const item of found.participants) {
+        if (item.user_id !== found.organizer_id) item.attendance = 'pending';
+      }
+      ctx.persist();
+      releaseSlot(ctx, previous.court_id, previous.starts_at);
+      return toBooking(ctx, found, viewer.id);
+    },
     async searchPlayers(token, q) {
       await ctx.wait();
       const viewer = ctx.authenticate(token).user;
@@ -107,22 +159,8 @@ export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlay
       await ctx.wait();
       const viewer = ctx.authenticate(token).user;
       if (ctx.scenario === 'conflict') throw new ApiError('Esse horário acabou de ser reservado por outra pessoa.', 409);
-      for (const key of Object.keys(input)) {
-        if (!KEYS.includes(key)) invalid(key, 'Este campo não pode ser informado.');
-      }
-      const court = Number.isSafeInteger(input.court_id) ? ctx.db.courts.find((item) => item.id === input.court_id) : undefined;
-      if (!court) invalid('court_id', 'Escolha uma quadra válida.');
-      const start = typeof input.starts_at === 'string' ? Date.parse(input.starts_at) : NaN;
-      if (Number.isNaN(start)) invalid('starts_at', 'Escolha um horário válido.');
-      const iso = new Date(start).toISOString();
-      const time = clubTime(iso);
-      if (!nextClubDays(ctx.now(), 7).includes(clubDate(start)) || time < '07:00' || time > '21:00' || !time.endsWith(':00')) {
-        invalid('starts_at', 'Esse horário está fora da agenda.');
-      }
-      if (start <= ctx.now()) throw new ApiError('Esse horário já passou.', 422, { starts_at: ['Esse horário já passou.'] });
-      const state = slotState(ctx, court.id, iso, viewer.id);
-      if (state.status === 'maintenance') throw new ApiError('Essa quadra está em manutenção nesse horário.', 409);
-      if (state.status !== 'free') throw new ApiError('Esse horário acabou de ser reservado por outra pessoa.', 409);
+      const { court, start, iso } = parseSlot(ctx, input, KEYS);
+      assertFree(ctx, court.id, iso, viewer.id);
 
       const ids = input.participant_ids;
       if (!Array.isArray(ids) || ids.length > MAX_GUESTS) invalid('participant_ids', 'Convide até 3 jogadores.');

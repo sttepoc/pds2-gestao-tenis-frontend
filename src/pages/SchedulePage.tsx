@@ -1,24 +1,72 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { getSchedule } from '../api/bookings';
+import { getBooking, getSchedule } from '../api/bookings';
+import { ApiError } from '../api/error';
 import type { Booking, Schedule, Session, Slot, SlotRef } from '../api/types';
 import { BookingPanel } from '../components/BookingPanel';
+import { RescheduleBanner } from '../components/RescheduleBanner';
+import { ReschedulePanel } from '../components/ReschedulePanel';
 import { DayStrip } from '../components/DayStrip';
 import { ScheduleGrid } from '../components/ScheduleGrid';
 import { useLoad } from '../hooks/useLoad';
-import { clubTime, formatClubDateTime, nextClubDays } from '../lib/club-time';
+import { clubDate, clubTime, formatClubDateTime, nextClubDays } from '../lib/club-time';
 import { bookingPath, routePaths } from '../navigation';
 
 type Props = {
   session: Session;
   onExpired: () => void;
-  /** Reserva sendo remarcada (Task 11); `null` no modo normal. */
+  /** Reserva sendo remarcada; `null` no modo normal. */
   rescheduleId?: number | null;
   now?: () => number;
 };
 
-export function SchedulePage({ session, onExpired, now = Date.now }: Props) {
+export function SchedulePage({ rescheduleId = null, ...props }: Props) {
+  return rescheduleId === null ? <Agenda {...props} /> : <RescheduleAgenda id={rescheduleId} {...props} />;
+}
+
+// Carrega a reserva a remarcar antes de abrir a agenda.
+function RescheduleAgenda({ id, ...props }: Omit<Props, 'rescheduleId'> & { id: number }) {
+  const { session, onExpired } = props;
+  const loadBooking = () => getBooking(session.token, id).catch((error: unknown) => {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  });
+  const { state, reload } = useLoad(`reschedule:${id}`, loadBooking, onExpired);
+  const back = <a className="text-link" href={routePaths.bookings}><span aria-hidden="true">←</span> Minhas reservas</a>;
+  if (state.status === 'loading') {
+    return <p className="status-line" role="status"><span className="rally" aria-hidden="true" />Carregando reserva…</p>;
+  }
+  if (state.status === 'error') {
+    return (
+      <>
+        <section className="content-panel empty-panel">
+          <h1>Não foi possível abrir a reserva</h1>
+          <p className="alert" role="alert">{state.message}</p>
+          <button className="button button--secondary" type="button" onClick={reload}>Tentar novamente</button>
+        </section>
+        {back}
+      </>
+    );
+  }
+  if (state.data === null) {
+    return (
+      <>
+        <section className="content-panel empty-panel">
+          <h1>Reserva não encontrada</h1>
+          <p>Ela pode ter sido removida ou não ser sua.</p>
+        </section>
+        {back}
+      </>
+    );
+  }
+  return <Agenda {...props} booking={state.data} />;
+}
+
+function Agenda({ session, onExpired, booking, now = Date.now }: Omit<Props, 'rescheduleId'> & { booking?: Booking }) {
   const days = useMemo(() => nextClubDays(now(), 7), [now]);
-  const [date, setDate] = useState(days[0]);
+  const [date, setDate] = useState(() => {
+    const own = booking && clubDate(booking.starts_at);
+    return own && days.includes(own) ? own : days[0];
+  });
   const [selected, setSelected] = useState<SlotRef | null>(null);
   const [courtId, setCourtId] = useState<number | null>(null);
   const [booked, setBooked] = useState<Booking | null>(null);
@@ -32,12 +80,15 @@ export function SchedulePage({ session, onExpired, now = Date.now }: Props) {
   }
 
   function select(item: SlotRef | null) {
+    // O horário atual da reserva remarcada não abre nada.
+    if (item && booking && item.court_id === booking.court.id &&
+      Date.parse(item.starts_at) === Date.parse(booking.starts_at)) return;
     setSelected(item && { court_id: item.court_id, starts_at: item.starts_at });
     setBooked(null);
     setConflict(null);
   }
 
-  // Único ponto onde as próximas tasks encaixam WaitlistPanel e ReschedulePanel.
+  // Único ponto onde a próxima task encaixa o WaitlistPanel.
   function renderPanel(slot: Slot, courtName: string): ReactNode {
     if (slot.status === 'maintenance') return <p>Quadra em manutenção nesse horário.</p>;
     // Antes mesmo da recarga: o formulário some assim que a reserva é criada, sem segundo envio.
@@ -50,6 +101,18 @@ export function SchedulePage({ session, onExpired, now = Date.now }: Props) {
       );
     }
     const conflictHere = conflict && conflict.court_id === slot.court_id && conflict.starts_at === slot.starts_at;
+    if (booking && (slot.status === 'free' || conflictHere)) {
+      return (
+        <ReschedulePanel
+          key={`${slot.court_id}:${slot.starts_at}`}
+          booking={booking} slot={slot} courtName={courtName} session={session}
+          conflictMessage={conflictHere ? conflict.message : ''}
+          onDone={(moved) => { window.location.hash = bookingPath(moved.id); }}
+          onConflict={(message) => { setConflict({ court_id: slot.court_id, starts_at: slot.starts_at, message }); reload(); }}
+          onExpired={onExpired}
+        />
+      );
+    }
     if (slot.status === 'free' || conflictHere) {
       return (
         <BookingPanel
@@ -112,9 +175,10 @@ export function SchedulePage({ session, onExpired, now = Date.now }: Props) {
       <div className="page-heading">
         <p className="eyebrow">QUADRAS</p>
         <h1>Agenda</h1>
-        <p>Escolha o dia e um horário livre para reservar.</p>
+        <p>{booking ? 'Escolha o dia e o novo horário livre da sua reserva.' : 'Escolha o dia e um horário livre para reservar.'}</p>
       </div>
       <section className="content-panel" aria-label="Agenda das quadras">
+        {booking && <RescheduleBanner booking={booking} />}
         <DayStrip days={days} value={date} onChange={changeDate} />
         {content}
       </section>

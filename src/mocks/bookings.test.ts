@@ -174,4 +174,56 @@ describe('bookingHandlers', () => {
     await api.cancelBooking(player.token, 5);
     await expect(api.cancelBooking(player.token, 5)).rejects.toMatchObject({ status: 422 });
   });
+
+  describe('rescheduleBooking', () => {
+    const target = { court_id: 2, starts_at: '2026-11-10T23:00:00.000Z' }; // amanhã 20:00
+
+    it('remarcar volta convidados para pendente e libera o horário antigo', async () => {
+      const { api, player, mariana } = await setupTestApi({ now });
+      await api.respondAttendance(mariana.token, 5, 'confirmed');
+      const moved = await api.rescheduleBooking(player.token, 5, target);
+      expect(moved).toMatchObject({
+        id: 5, court: { id: 2, name: 'Quadra 2' }, starts_at: '2026-11-10T23:00:00.000Z', ends_at: '2026-11-11T00:00:00.000Z',
+        participants: [
+          { id: 2, attendance: 'confirmed' },
+          { id: 3, attendance: 'pending' },
+        ],
+      });
+      const schedule = await api.getSchedule(player.token, '2026-11-10');
+      const old = schedule.slots.find((item) => item.court_id === 1 && item.starts_at === '2026-11-10T22:00:00.000Z');
+      expect(old?.status).toBe('free');
+    });
+
+    it('convidado remarcando → 403; não envolvido ou inexistente → 404', async () => {
+      const { api, mariana, pedro } = await setupTestApi({ now });
+      await expect(api.rescheduleBooking(mariana.token, 5, target))
+        .rejects.toMatchObject({ status: 403, message: 'Só quem organiza pode remarcar a reserva.' });
+      await expect(api.rescheduleBooking(pedro.token, 5, target))
+        .rejects.toMatchObject({ status: 404, message: 'Reserva não encontrada.' });
+      await expect(api.rescheduleBooking(pedro.token, 9999, target)).rejects.toMatchObject({ status: 404 });
+      await expect(api.rescheduleBooking(pedro.token, Number.NaN, target)).rejects.toMatchObject({ status: 404 });
+    });
+
+    it('reserva cancelada → 422; mesmo horário → 422', async () => {
+      const { api, player } = await setupTestApi({ now });
+      await expect(api.rescheduleBooking(player.token, 5, { court_id: 1, starts_at: '2026-11-10T22:00:00.000Z' }))
+        .rejects.toMatchObject({ status: 422, message: 'Escolha um horário diferente do atual.' });
+      await api.cancelBooking(player.token, 5);
+      await expect(api.rescheduleBooking(player.token, 5, target))
+        .rejects.toMatchObject({ status: 422, message: 'Essa reserva já começou ou foi cancelada.' });
+    });
+
+    it('novo horário ocupado, em manutenção, passado ou com chave extra', async () => {
+      const { api, player, mariana } = await setupTestApi({ now });
+      await api.createBooking(mariana.token, { ...target, participant_ids: [] });
+      await expect(api.rescheduleBooking(player.token, 5, target)).rejects.toMatchObject({ status: 409 });
+      await expect(api.rescheduleBooking(player.token, 5, { court_id: 3, starts_at: '2026-11-09T20:00:00.000Z' }))
+        .rejects.toMatchObject({ status: 409, message: 'Essa quadra está em manutenção nesse horário.' });
+      await expect(api.rescheduleBooking(player.token, 5, { court_id: 2, starts_at: '2026-11-09T12:00:00.000Z' }))
+        .rejects.toMatchObject({ status: 422, message: 'Esse horário já passou.' });
+      await expect(api.rescheduleBooking(player.token, 5, { ...target, organizer_id: 3 } as never))
+        .rejects.toMatchObject({ status: 422 });
+      expect((await api.getBooking(player.token, 5)).starts_at).toBe('2026-11-10T22:00:00.000Z');
+    });
+  });
 });

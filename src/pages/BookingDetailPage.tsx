@@ -5,6 +5,7 @@ import type { Session } from '../api/types';
 import { AttendanceActions } from '../components/AttendanceActions';
 import { AttendanceList } from '../components/AttendanceList';
 import { CancelBookingAction } from '../components/CancelBookingAction';
+import { RescheduleLink } from '../components/RescheduleLink';
 import { useLoad } from '../hooks/useLoad';
 import { clubDateLabel, clubTime } from '../lib/club-time';
 import { routePaths } from '../navigation';
@@ -77,6 +78,7 @@ export function BookingDetailPage({ id, session, onExpired, now }: Props) {
         </p>
         {notice && <p className="notice" role="status">{notice}</p>}
         <AttendanceActions booking={booking} session={session} onChange={setData} onExpired={onExpired} now={now} />
+        <RescheduleLink booking={booking} now={now} />
         <CancelBookingAction
           booking={booking} session={session} onExpired={onExpired} now={now}
           onCancelled={(cancelled) => { setData(cancelled); setNotice('Reserva cancelada.'); }}
