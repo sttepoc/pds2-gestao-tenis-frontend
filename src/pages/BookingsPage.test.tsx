@@ -121,4 +121,40 @@ describe('BookingsPage presença', () => {
     const card = (await screen.findByRole('link', { name: 'Quadra 1 · 19:00–20:00' })).closest('article')!;
     expect(within(card).queryByRole('button')).not.toBeInTheDocument();
   });
+
+  it('duas respostas rápidas em cards diferentes ficam as duas', async () => {
+    const { mariana, api, ctx } = await setupTestApi({ now: () => NOW });
+    ctx.db.bookings.find((item) => item.id === 6)!.participants.push({ user_id: 3, attendance: 'pending' });
+    const real = api.respondAttendance;
+    const releases: (() => void)[] = [];
+    api.respondAttendance = vi.fn((...args: Parameters<typeof real>) =>
+      new Promise((resolve) => { releases.push(() => resolve(real(...args))); })) as typeof real;
+    const user = userEvent.setup();
+    renderPage(mariana);
+    const first = (await screen.findByRole('link', { name: 'Quadra 1 · 19:00–20:00' })).closest('article')!;
+    const second = screen.getByRole('link', { name: 'Quadra 2 · 08:00–09:00' }).closest('article')!;
+    await user.click(within(first).getByRole('button', { name: 'Confirmar presença' }));
+    await user.click(within(second).getByRole('button', { name: 'Confirmar presença' }));
+    releases.forEach((release) => release());
+    expect(await within(first).findByText('Presença confirmada')).toBeInTheDocument();
+    expect(await within(second).findByText('Presença confirmada')).toBeInTheDocument();
+  });
+
+  it('responder e trocar de aba antes da resposta não sobrescreve Anteriores', async () => {
+    const { mariana, api } = await setupTestApi({ now: () => NOW });
+    const real = api.respondAttendance;
+    let release!: () => void;
+    api.respondAttendance = vi.fn((...args: Parameters<typeof real>) =>
+      new Promise((resolve) => { release = () => resolve(real(...args)); })) as typeof real;
+    const user = userEvent.setup();
+    renderPage(mariana);
+    await user.click(await screen.findByRole('button', { name: 'Confirmar presença' }));
+    await user.click(screen.getByRole('tab', { name: 'Anteriores' }));
+    expect(await screen.findByText('Nenhuma reserva anterior.')).toBeInTheDocument();
+    release();
+    await vi.waitFor(() => expect(api.respondAttendance).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.getByText('Nenhuma reserva anterior.')).toBeInTheDocument();
+    expect(screen.queryByText('Carregando reservas…')).not.toBeInTheDocument();
+  });
 });

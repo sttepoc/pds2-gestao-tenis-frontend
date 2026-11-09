@@ -28,7 +28,13 @@ export function useLoad<T>(key: string, load: () => Promise<T>, onExpired: () =>
   }, [key, attempt]);
 
   const reload = useCallback(() => setAttempt((value) => value + 1), []);
-  const setData = useCallback((data: T) => setState({ status: 'ready', data }), []);
+  // Aceita o valor ou uma função que parte dos dados atuais (só aplicada se já estiver pronto).
+  const setData = useCallback((data: T | ((previous: T) => T)) => {
+    setState((current) => {
+      if (typeof data !== 'function') return { status: 'ready', data };
+      return current.status === 'ready' ? { status: 'ready', data: (data as (previous: T) => T)(current.data) } : current;
+    });
+  }, []);
 
   return { state, reload, setData };
 }

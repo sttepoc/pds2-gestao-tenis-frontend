@@ -73,6 +73,22 @@ describe('BookingDetailPage', () => {
     expect(await screen.findByRole('heading', { name: 'Reserva não encontrada' })).toBeInTheDocument();
   });
 
+  it('404 com outro texto também mostra "Reserva não encontrada", sem tentar de novo', async () => {
+    const { player, api } = await setupTestApi({ now: () => NOW });
+    api.getBooking = vi.fn().mockRejectedValue(new ApiError('Not Found', 404));
+    renderPage(player, 5);
+    expect(await screen.findByRole('heading', { name: 'Reserva não encontrada' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tentar novamente' })).not.toBeInTheDocument();
+  });
+
+  it('erro de carga que não é 404 mostra alerta e tentar de novo', async () => {
+    const { player, api } = await setupTestApi({ now: () => NOW });
+    api.getBooking = vi.fn().mockRejectedValue(new ApiError('Falha.', 500));
+    renderPage(player, 5);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha.');
+    expect(screen.getByRole('button', { name: 'Tentar novamente' })).toBeInTheDocument();
+  });
+
   it('erro ao responder mostra o alerta e libera os botões', async () => {
     const { mariana, api } = await setupTestApi({ now: () => NOW });
     api.respondAttendance = vi.fn().mockRejectedValue(new ApiError('Essa reserva já começou ou foi cancelada.', 422));

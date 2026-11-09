@@ -53,8 +53,10 @@ export function BookingsPage({ session, onExpired }: Props) {
         </div>
       );
     }
+    // Mescla na lista mais recente, e só se ela ainda for a das próximas.
     const replace = (updated: Booking) =>
-      setData({ scope, items: items.map((item) => (item.id === updated.id ? updated : item)) });
+      setData((latest) => latest.scope !== 'upcoming' ? latest
+        : { ...latest, items: latest.items.map((item) => (item.id === updated.id ? updated : item)) });
     return (
       <div className="booking-list">
         {items.map((item) => (

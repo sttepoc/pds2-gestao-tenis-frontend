@@ -1,4 +1,5 @@
 import { getBooking } from '../api/bookings';
+import { ApiError } from '../api/error';
 import type { Session } from '../api/types';
 import { AttendanceActions } from '../components/AttendanceActions';
 import { AttendanceList } from '../components/AttendanceList';
@@ -12,29 +13,38 @@ type Props = {
   onExpired: () => void;
 };
 
-const NOT_FOUND = 'Reserva não encontrada.';
 const statusLabels = { completed: 'Concluída', cancelled: 'Cancelada' } as const;
 
 export function BookingDetailPage({ id, session, onExpired }: Props) {
-  const { state, reload, setData } = useLoad(`booking:${id}`, () => getBooking(session.token, id), onExpired);
+  // 404 vira null (reserva inexistente ou de outra pessoa); o resto segue para o useLoad.
+  const loadBooking = () => getBooking(session.token, id).catch((error: unknown) => {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  });
+  const { state, reload, setData } = useLoad(`booking:${id}`, loadBooking, onExpired);
   const back = <a className="text-link" href={routePaths.bookings}><span aria-hidden="true">←</span> Minhas reservas</a>;
 
   if (state.status === 'loading') {
     return <p className="status-line" role="status"><span className="rally" aria-hidden="true" />Carregando reserva…</p>;
   }
   if (state.status === 'error') {
-    // O mock e a API devolvem este texto no 404; qualquer outro erro permite tentar de novo.
-    const missing = state.message === NOT_FOUND;
     return (
       <>
         <section className="content-panel empty-panel">
-          <h1>{missing ? 'Reserva não encontrada' : 'Não foi possível abrir a reserva'}</h1>
-          {missing ? <p>Ela pode ter sido removida ou não ser sua.</p> : (
-            <>
-              <p className="alert" role="alert">{state.message}</p>
-              <button className="button button--secondary" type="button" onClick={reload}>Tentar novamente</button>
-            </>
-          )}
+          <h1>Não foi possível abrir a reserva</h1>
+          <p className="alert" role="alert">{state.message}</p>
+          <button className="button button--secondary" type="button" onClick={reload}>Tentar novamente</button>
+        </section>
+        {back}
+      </>
+    );
+  }
+  if (state.data === null) {
+    return (
+      <>
+        <section className="content-panel empty-panel">
+          <h1>Reserva não encontrada</h1>
+          <p>Ela pode ter sido removida ou não ser sua.</p>
         </section>
         {back}
       </>

@@ -48,4 +48,14 @@ describe('useLoad', () => {
     act(() => result.current.setData(9));
     expect(result.current.state).toEqual({ status: 'ready', data: 9 });
   });
+
+  it('setData aceita função aplicada aos dados atuais e ignora se não estiver pronto', async () => {
+    const { result } = renderHook(() => useLoad('a', async () => 5, vi.fn()));
+    act(() => result.current.setData((value) => value + 1));
+    expect(result.current.state).toEqual({ status: 'loading' });
+    await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: 5 }));
+    act(() => result.current.setData((value) => value + 1));
+    act(() => result.current.setData((value) => value * 10));
+    expect(result.current.state).toEqual({ status: 'ready', data: 60 });
+  });
 });
