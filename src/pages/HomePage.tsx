@@ -26,6 +26,12 @@ export function HomePage({ user, access, onRetry }: { user: User; access: Member
           <span>Seu dia a dia no clube</span>
         </div>
         <div className="quick-access-grid">
+          <a className="destination-card" href={routePaths.schedule}>
+            <span className="destination-tag">QUADRAS</span>
+            <h3>Agenda <span aria-hidden="true">↗</span></h3>
+            <p>Veja os horários das quadras e reserve o seu.</p>
+            <span className="destination-action">Ver agenda <span aria-hidden="true">→</span></span>
+          </a>
           <a className="destination-card" href={routePaths.account}>
             <span className="destination-tag">ÁREA PESSOAL</span>
             <h3>Minha conta <span aria-hidden="true">↗</span></h3>

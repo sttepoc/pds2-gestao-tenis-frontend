@@ -14,6 +14,7 @@ import { CourtsPage } from './pages/CourtsPage';
 import { HomePage } from './pages/HomePage';
 import { MembersPage } from './pages/MembersPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import { SchedulePage } from './pages/SchedulePage';
 import './styles/app.css';
 import './styles/booking.css';
 
@@ -45,6 +46,9 @@ function ClubApp({ session, route, onLogout, onExpired }: {
       break;
     case 'courts':
       page = <CourtsPage session={session} access={access} onRetry={retry} onExpired={onExpired} />;
+      break;
+    case 'schedule':
+      page = <SchedulePage session={session} onExpired={onExpired} rescheduleId={null} />;
       break;
     case 'not-found':
       page = <NotFoundPage />;

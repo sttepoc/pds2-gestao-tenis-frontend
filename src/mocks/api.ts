@@ -1,6 +1,7 @@
 import { ApiError } from '../api/error';
 import type { ApiServices, Member, MemberQuery } from '../api/types';
 import { courtHandlers } from './courts';
+import { scheduleHandlers } from './schedule';
 import { createMockContext, notYet, type MockContext, type MockOptions } from './context';
 import { DEMO_PASSWORD } from './fixtures';
 import { validateLogin, validateMember, validateRegistration } from './validation';
@@ -124,7 +125,7 @@ export function mockApiFor(ctx: MockContext): ApiServices {
       persist();
     },
     ...courtHandlers(ctx),
-    getSchedule: pending,
+    ...scheduleHandlers(ctx),
     searchPlayers: pending,
     createBooking: pending,
     listBookings: pending,
