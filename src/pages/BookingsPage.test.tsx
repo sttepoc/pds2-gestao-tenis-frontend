@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../api/error';
 import type { Session } from '../api/types';
 import { setupTestApi } from '../test/api';
 import { BookingsPage } from './BookingsPage';
@@ -9,7 +10,7 @@ const NOW = Date.parse('2026-11-09T12:00:00-03:00');
 
 function renderPage(session: Session) {
   const onExpired = vi.fn();
-  const view = render(<BookingsPage session={session} onExpired={onExpired} now={() => NOW} />);
+  const view = render(<BookingsPage session={session} onExpired={onExpired} />);
   return { ...view, onExpired };
 }
 
@@ -23,6 +24,8 @@ describe('BookingsPage', () => {
     expect(within(first).getByText('Organizador')).toBeInTheDocument();
     expect(within(first).getByText('1 de 2 confirmaram')).toBeInTheDocument();
     expect(within(first).getByText('TER')).toBeInTheDocument();
+    expect(first).toHaveTextContent('ter., 10 de nov.');
+    expect(within(first).getByText('ter., 10 de nov.')).toHaveAttribute('datetime', '2026-11-10T22:00:00.000Z');
     const second = screen.getByRole('link', { name: 'Quadra 2 · 08:00–09:00' }).closest('article')!;
     expect(within(second).getByText('Convidado por Camila Oliveira')).toBeInTheDocument();
     expect(within(second).getByText('1 de 2 confirmaram')).toBeInTheDocument();
@@ -76,6 +79,17 @@ describe('BookingsPage', () => {
     await user.keyboard('{ArrowLeft}');
     expect(past).toHaveFocus();
     expect(past).toHaveAttribute('aria-controls', screen.getByRole('tabpanel').id);
+  });
+
+  it('falha de carga com ApiError mostra a mensagem e permite tentar de novo', async () => {
+    const { player, api } = await setupTestApi({ now: () => NOW });
+    const real = api.listBookings;
+    api.listBookings = vi.fn().mockRejectedValueOnce(new ApiError('Reserva não encontrada.', 404)).mockImplementation(real);
+    const user = userEvent.setup();
+    renderPage(player);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Reserva não encontrada.');
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    expect(await screen.findByRole('link', { name: 'Quadra 1 · 19:00–20:00' })).toBeInTheDocument();
   });
 
   it('erro mostra alerta e permite tentar de novo; 401 chama onExpired', async () => {

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Booking } from '../api/types';
-import { clubDate, clubTime, dayParts } from '../lib/club-time';
+import { clubDate, clubDateLabel, clubTime, dayParts } from '../lib/club-time';
 import { bookingPath } from '../navigation';
 
 const statusLabels = { completed: 'Concluída', cancelled: 'Cancelada' } as const;
@@ -23,6 +23,7 @@ export function BookingCard({ booking, children }: { booking: Booking; children?
           </a>
         </h3>
         <p className="booking-meta">
+          <time className="visually-hidden" dateTime={booking.starts_at}>{clubDateLabel(booking.starts_at)}</time>
           <span className="booking-badge">{role}</span>
           {status && <span className={`booking-badge booking-badge--${booking.status}`}>{status}</span>}
           <span>{confirmed} de {booking.participants.length} confirmaram</span>

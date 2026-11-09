@@ -9,7 +9,6 @@ import { routePaths } from '../navigation';
 type Props = {
   session: Session;
   onExpired: () => void;
-  now?: () => number;
 };
 
 type Scope = 'upcoming' | 'past';

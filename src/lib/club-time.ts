@@ -34,6 +34,10 @@ export function dayParts(date: string): { weekday: string; day: string } {
   };
 }
 
+export function clubDateLabel(iso: string): string {
+  return labelFormat.format(new Date(iso));
+}
+
 export function formatClubDateTime(iso: string): string {
   return `${labelFormat.format(new Date(iso))} · ${clubTime(iso)}`;
 }
