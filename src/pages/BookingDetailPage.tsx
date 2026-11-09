@@ -1,8 +1,10 @@
+import { useState } from 'react';
 import { getBooking } from '../api/bookings';
 import { ApiError } from '../api/error';
 import type { Session } from '../api/types';
 import { AttendanceActions } from '../components/AttendanceActions';
 import { AttendanceList } from '../components/AttendanceList';
+import { CancelBookingAction } from '../components/CancelBookingAction';
 import { useLoad } from '../hooks/useLoad';
 import { clubDateLabel, clubTime } from '../lib/club-time';
 import { routePaths } from '../navigation';
@@ -22,6 +24,7 @@ export function BookingDetailPage({ id, session, onExpired }: Props) {
     throw error;
   });
   const { state, reload, setData } = useLoad(`booking:${id}`, loadBooking, onExpired);
+  const [notice, setNotice] = useState('');
   const back = <a className="text-link" href={routePaths.bookings}><span aria-hidden="true">←</span> Minhas reservas</a>;
 
   if (state.status === 'loading') {
@@ -71,7 +74,12 @@ export function BookingDetailPage({ id, session, onExpired }: Props) {
           )}
           <span>{confirmed} de {booking.participants.length} confirmaram</span>
         </p>
+        {notice && <p className="notice" role="status">{notice}</p>}
         <AttendanceActions booking={booking} session={session} onChange={setData} onExpired={onExpired} />
+        <CancelBookingAction
+          booking={booking} session={session} onExpired={onExpired}
+          onCancelled={(cancelled) => { setData(cancelled); setNotice('Reserva cancelada.'); }}
+        />
         <AttendanceList participants={booking.participants} />
       </section>
       {back}

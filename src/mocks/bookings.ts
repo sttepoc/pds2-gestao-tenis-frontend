@@ -38,7 +38,10 @@ function withStatus(ctx: MockContext, mock: MockBooking, viewerId: number): Book
 const isMine = (mock: MockBooking, viewerId: number) =>
   mock.organizer_id === viewerId || mock.participants.some((item) => item.user_id === viewerId);
 
-export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlayers' | 'createBooking' | 'listBookings' | 'getBooking' | 'respondAttendance'> {
+/** Gancho para quando um horário volta a ficar livre; a Task 13 passa a oferecê-lo à fila de espera. */
+export function releaseSlot(_ctx: MockContext, _courtId: number, _startsAt: string): void {}
+
+export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlayers' | 'createBooking' | 'listBookings' | 'getBooking' | 'respondAttendance' | 'cancelBooking'> {
   return {
     async listBookings(token, scope) {
       await ctx.wait();
@@ -73,6 +76,20 @@ export function bookingHandlers(ctx: MockContext): Pick<ApiServices, 'searchPlay
       const mine = found.participants.find((item) => item.user_id === viewer.id);
       if (mine) mine.attendance = response;
       ctx.persist();
+      return toBooking(ctx, found, viewer.id);
+    },
+    async cancelBooking(token, id) {
+      await ctx.wait();
+      const viewer = ctx.authenticate(token).user;
+      const found = Number.isSafeInteger(id) ? ctx.db.bookings.find((item) => item.id === id) : undefined;
+      if (!found || !isMine(found, viewer.id)) throw new ApiError('Reserva não encontrada.', 404);
+      if (found.organizer_id !== viewer.id) throw new ApiError('Só quem organiza pode cancelar a reserva.', 403);
+      if (found.status !== 'active' || Date.parse(found.starts_at) <= ctx.now()) {
+        throw new ApiError('Essa reserva já começou ou foi cancelada.', 422);
+      }
+      found.status = 'cancelled';
+      ctx.persist();
+      releaseSlot(ctx, found.court_id, found.starts_at);
       return toBooking(ctx, found, viewer.id);
     },
     async searchPlayers(token, q) {

@@ -116,3 +116,24 @@ describe('BookingDetailPage', () => {
     expect(within(time.closest('section')!).getByText(/19:00–20:00/)).toBeInTheDocument();
   });
 });
+
+describe('BookingDetailPage cancelamento', () => {
+  it('organizador cancela, vê o aviso e as ações somem', async () => {
+    const { player } = await setupTestApi({ now: () => NOW });
+    const user = userEvent.setup();
+    renderPage(player, 5);
+    await user.click(await screen.findByRole('button', { name: 'Cancelar reserva da Quadra 1 em ter., 10 de nov. 19:00' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar reserva' }));
+    expect(await screen.findByText('Reserva cancelada.')).toHaveAttribute('role', 'status');
+    expect(screen.getByText('Cancelada')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Cancelar/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+  });
+
+  it('convidado não vê Cancelar', async () => {
+    const { mariana } = await setupTestApi({ now: () => NOW });
+    renderPage(mariana, 5);
+    await screen.findByRole('heading', { level: 1, name: 'Quadra 1' });
+    expect(screen.queryByRole('button', { name: /^Cancelar/ })).not.toBeInTheDocument();
+  });
+});

@@ -143,4 +143,35 @@ describe('bookingHandlers', () => {
     });
     await expect(api.respondAttendance(player.token, 40, 'confirmed')).rejects.toMatchObject({ status: 422 });
   });
+
+  it('cancelBooking: organizador cancela e a reserva passa a cancelada', async () => {
+    const { api, player, mariana } = await setupTestApi({ now });
+    const cancelled = await api.cancelBooking(player.token, 5);
+    expect(cancelled).toMatchObject({ id: 5, status: 'cancelled', my_role: 'organizer' });
+    expect((await api.getBooking(mariana.token, 5)).status).toBe('cancelled');
+    expect(await api.listBookings(player.token, 'upcoming')).toHaveLength(1);
+  });
+
+  it('cancelBooking: convidado → 403; não envolvido, inexistente ou inválida → 404', async () => {
+    const { api, mariana, pedro } = await setupTestApi({ now });
+    await expect(api.cancelBooking(mariana.token, 5))
+      .rejects.toMatchObject({ status: 403, message: 'Só quem organiza pode cancelar a reserva.' });
+    await expect(api.cancelBooking(pedro.token, 5))
+      .rejects.toMatchObject({ status: 404, message: 'Reserva não encontrada.' });
+    await expect(api.cancelBooking(pedro.token, 9999)).rejects.toMatchObject({ status: 404 });
+    await expect(api.cancelBooking(pedro.token, Number.NaN)).rejects.toMatchObject({ status: 404 });
+    expect((await api.getBooking(mariana.token, 5)).status).toBe('active');
+  });
+
+  it('cancelBooking: reserva que já começou ou já cancelada → 422', async () => {
+    const { api, player, ctx } = await setupTestApi({ now });
+    ctx.db.bookings.push({
+      id: 41, court_id: 1, starts_at: '2026-11-09T12:00:00.000Z', ends_at: '2026-11-09T13:00:00.000Z',
+      status: 'active', organizer_id: 2, participants: [{ user_id: 2, attendance: 'confirmed' }],
+    });
+    await expect(api.cancelBooking(player.token, 41))
+      .rejects.toMatchObject({ status: 422, message: 'Essa reserva já começou ou foi cancelada.' });
+    await api.cancelBooking(player.token, 5);
+    await expect(api.cancelBooking(player.token, 5)).rejects.toMatchObject({ status: 422 });
+  });
 });

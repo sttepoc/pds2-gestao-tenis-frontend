@@ -3,6 +3,7 @@ import { listBookings } from '../api/bookings';
 import type { Booking, Session } from '../api/types';
 import { AttendanceActions } from '../components/AttendanceActions';
 import { BookingCard } from '../components/BookingCard';
+import { CancelBookingAction } from '../components/CancelBookingAction';
 import { panelId, tabId, Tabs } from '../components/Tabs';
 import { useLoad } from '../hooks/useLoad';
 import { routePaths } from '../navigation';
@@ -25,6 +26,7 @@ const empty: Record<Scope, string> = { upcoming: 'Nenhuma reserva marcada.', pas
 export function BookingsPage({ session, onExpired }: Props) {
   const [tab, setTab] = useState<string>('upcoming');
   const scope = tab as Scope;
+  const [notice, setNotice] = useState('');
   const { state, reload, setData } = useLoad(
     `bookings:${scope}`,
     async () => ({ scope, items: await listBookings(session.token, scope) }),
@@ -57,11 +59,18 @@ export function BookingsPage({ session, onExpired }: Props) {
     const replace = (updated: Booking) =>
       setData((latest) => latest.scope !== 'upcoming' ? latest
         : { ...latest, items: latest.items.map((item) => (item.id === updated.id ? updated : item)) });
+    // A reserva cancelada sai de Próximas; em Anteriores ela aparece quando a aba carregar.
+    const remove = (cancelled: Booking) => {
+      setData((latest) => latest.scope !== 'upcoming' ? latest
+        : { ...latest, items: latest.items.filter((item) => item.id !== cancelled.id) });
+      setNotice('Reserva cancelada.');
+    };
     return (
       <div className="booking-list">
         {items.map((item) => (
           <BookingCard key={item.id} booking={item}>
             <AttendanceActions booking={item} session={session} onChange={replace} onExpired={onExpired} />
+            <CancelBookingAction booking={item} session={session} onCancelled={remove} onExpired={onExpired} />
           </BookingCard>
         ))}
       </div>
@@ -76,6 +85,7 @@ export function BookingsPage({ session, onExpired }: Props) {
         <p>Acompanhe os horários que você marcou ou para os quais foi convidado.</p>
       </div>
       <section className="content-panel" aria-label="Minhas reservas">
+        {notice && <p className="notice" role="status">{notice}</p>}
         <Tabs tabs={TABS} value={tab} onChange={setTab} />
         <div role="tabpanel" id={panelId(tab)} aria-labelledby={tabId(tab)}>
           {renderPanel()}

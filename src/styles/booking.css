@@ -477,3 +477,40 @@
   margin: 0;
   padding-left: 1.25rem;
 }
+
+.button--danger {
+  border-color: var(--error);
+  background: var(--error);
+  color: white;
+}
+
+.button--danger:focus-visible {
+  outline: 3px solid var(--court);
+  outline-offset: 3px;
+}
+
+.cancel-booking {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+}
+
+.confirm-action {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--error);
+  border-radius: 8px;
+  background: var(--error-tint);
+}
+
+.confirm-action h4,
+.confirm-action p {
+  margin: 0;
+}
+
+.confirm-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

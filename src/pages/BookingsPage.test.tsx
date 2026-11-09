@@ -119,7 +119,7 @@ describe('BookingsPage presença', () => {
     const { player } = await setupTestApi({ now: () => NOW });
     renderPage(player);
     const card = (await screen.findByRole('link', { name: 'Quadra 1 · 19:00–20:00' })).closest('article')!;
-    expect(within(card).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(card).queryByRole('button', { name: /presença|Não vou/ })).not.toBeInTheDocument();
   });
 
   it('duas respostas rápidas em cards diferentes ficam as duas', async () => {
@@ -156,5 +156,63 @@ describe('BookingsPage presença', () => {
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(screen.getByText('Nenhuma reserva anterior.')).toBeInTheDocument();
     expect(screen.queryByText('Carregando reservas…')).not.toBeInTheDocument();
+  });
+});
+
+describe('BookingsPage cancelamento', () => {
+  const cancelName = 'Cancelar reserva da Quadra 1 em ter., 10 de nov. 19:00';
+
+  it('cancelar pede confirmação e "Manter reserva" não altera nada e devolve o foco', async () => {
+    const { player, api } = await setupTestApi({ now: () => NOW });
+    const spy = vi.spyOn(api, 'cancelBooking');
+    const user = userEvent.setup();
+    renderPage(player);
+    const opener = await screen.findByRole('button', { name: cancelName });
+    await user.click(opener);
+    const dialog = screen.getByRole('alertdialog', { name: 'Cancelar reserva?' });
+    expect(within(dialog).getByText('Os participantes serão avisados e a vaga vai para a fila de espera.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Manter reserva' })).toHaveFocus();
+    await user.click(within(dialog).getByRole('button', { name: 'Manter reserva' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(opener).toHaveFocus();
+    expect(spy).not.toHaveBeenCalled();
+    expect(screen.getByRole('link', { name: 'Quadra 1 · 19:00–20:00' })).toBeInTheDocument();
+  });
+
+  it('confirmar tira o card de Próximas, avisa e move para Anteriores como Cancelada', async () => {
+    const { player } = await setupTestApi({ now: () => NOW });
+    const user = userEvent.setup();
+    renderPage(player);
+    await user.click(await screen.findByRole('button', { name: cancelName }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar reserva' }));
+    expect(await screen.findByText('Reserva cancelada.')).toHaveAttribute('role', 'status');
+    expect(screen.queryByRole('link', { name: 'Quadra 1 · 19:00–20:00' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Anteriores' }));
+    const card = (await screen.findByRole('link', { name: 'Quadra 1 · 19:00–20:00' })).closest('article')!;
+    expect(within(card).getByText('Cancelada')).toBeInTheDocument();
+  });
+
+  it('convidado não vê Cancelar e o mock responde 403 se tentar', async () => {
+    const { mariana, api } = await setupTestApi({ now: () => NOW });
+    renderPage(mariana);
+    await screen.findByRole('link', { name: 'Quadra 1 · 19:00–20:00' });
+    expect(screen.queryByRole('button', { name: /^Cancelar/ })).not.toBeInTheDocument();
+    await expect(api.cancelBooking(mariana.token, 5)).rejects.toMatchObject({ status: 403 });
+  });
+
+  it('erro do servidor aparece no painel e permite tentar de novo; 401 chama onExpired', async () => {
+    const { player, api } = await setupTestApi({ now: () => NOW });
+    const real = api.cancelBooking;
+    api.cancelBooking = vi.fn().mockRejectedValueOnce(new ApiError('Essa reserva já começou ou foi cancelada.', 422)) as typeof real;
+    const user = userEvent.setup();
+    const { onExpired } = renderPage(player);
+    await user.click(await screen.findByRole('button', { name: cancelName }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar reserva' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Essa reserva já começou ou foi cancelada.');
+    expect(screen.getByRole('button', { name: 'Cancelar reserva' })).toBeEnabled();
+    api.cancelBooking = vi.fn().mockRejectedValueOnce(new ApiError('Sessão expirada.', 401)) as typeof real;
+    await user.click(screen.getByRole('button', { name: 'Cancelar reserva' }));
+    await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
   });
 });
