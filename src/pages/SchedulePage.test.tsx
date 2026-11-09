@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { Session } from '../api/types';
@@ -25,12 +25,19 @@ describe('SchedulePage', () => {
     expect(screen.getByRole('button', { name: 'Quadra 2, 19:00, livre' })).toBeInTheDocument();
   });
 
-  it('mostra o estado reservado para reserva de outra pessoa', async () => {
+  it('mostra o estado ocupado para reserva de outra pessoa', async () => {
     const { pedro } = await setupTestApi({ now: () => NOW });
     const user = userEvent.setup();
     renderPage(pedro);
     await user.click(await screen.findByRole('button', { name: /TER 10/ }));
-    expect(await screen.findByRole('button', { name: 'Quadra 1, 19:00, reservado' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Quadra 1, 19:00, ocupado' })).toBeInTheDocument();
+  });
+
+  it('a legenda usa os quatro textos da especificação', async () => {
+    const { player } = await setupTestApi({ now: () => NOW });
+    renderPage(player);
+    const legend = await screen.findByRole('list', { name: 'Legenda' });
+    expect(within(legend).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['Livre', 'Ocupado', 'Sua reserva', 'Manutenção']);
   });
 
   it('trocar o dia recarrega a grade', async () => {

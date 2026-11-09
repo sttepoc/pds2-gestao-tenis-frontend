@@ -10,10 +10,12 @@ type Props = {
 };
 
 const LABELS: Record<SlotStatus, string> = {
-  free: 'livre', booked: 'reservado', mine: 'sua reserva', maintenance: 'em manutenção',
+  free: 'livre', booked: 'ocupado', mine: 'sua reserva', maintenance: 'em manutenção',
 };
 
-const LEGEND: SlotStatus[] = ['free', 'booked', 'mine', 'maintenance'];
+const LEGEND: [SlotStatus, string][] = [
+  ['free', 'Livre'], ['booked', 'Ocupado'], ['mine', 'Sua reserva'], ['maintenance', 'Manutenção'],
+];
 
 export function ScheduleGrid({ schedule, selected, onSelect, activeCourtId, onCourtChange }: Props) {
   const { courts, slots } = schedule;
@@ -62,8 +64,8 @@ export function ScheduleGrid({ schedule, selected, onSelect, activeCourtId, onCo
         </div>
       </div>
       <ul className="schedule-legend" aria-label="Legenda">
-        {LEGEND.map((status) => (
-          <li key={status}><span className={`slot-swatch slot--${status}`} aria-hidden="true" />{LABELS[status][0].toUpperCase() + LABELS[status].slice(1)}</li>
+        {LEGEND.map(([status, text]) => (
+          <li key={status}><span className={`slot-swatch slot--${status}`} aria-hidden="true" />{text}</li>
         ))}
       </ul>
     </div>
