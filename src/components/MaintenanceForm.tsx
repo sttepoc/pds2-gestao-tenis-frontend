@@ -92,7 +92,16 @@ export function MaintenanceForm({ court, token, onSaved, onCancel, onExpired }: 
         <input
           ref={refs[name]} id={`${id}-${name}`} name={name} type={type}
           maxLength={type === 'text' ? 200 : undefined} autoComplete="off"
-          value={values[name]} onChange={(event) => setValues({ ...values, [name]: event.target.value })}
+          value={values[name]}
+          onChange={(event) => {
+            setValues({ ...values, [name]: event.target.value });
+            // A confirmação vale só para o período avisado: mudar o período a invalida.
+            if (name !== 'reason' && conflict) {
+              setConflict(false);
+              setCancelBookings(false);
+              setFormError('');
+            }
+          }}
           aria-invalid={errors[name] ? true : undefined} aria-describedby={errors[name] ? errorId : undefined}
         />
         {errors[name] && <p id={errorId} className="field-error">{errors[name]}</p>}

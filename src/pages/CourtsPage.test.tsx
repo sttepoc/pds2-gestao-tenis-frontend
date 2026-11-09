@@ -174,6 +174,24 @@ describe('CourtsPage', () => {
       expect(ctx.db.bookings.find((item) => item.id === 5)?.status).toBe('cancelled');
     });
 
+    it('mudar o período depois do aviso invalida a confirmação de cancelamento', async () => {
+      const { admin, ctx } = await setupTestApi({ now: () => NOW });
+      const user = userEvent.setup();
+      renderPage(admin);
+      await openMaintenance(user, 'Quadra 1');
+      fillWindow('2026-11-10T18:00', '2026-11-10T21:00', 'Pintura');
+      await user.click(screen.getByRole('button', { name: 'Salvar manutenção' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Há 1 reserva(s) nesse período.');
+      await user.click(screen.getByLabelText('Cancelar as reservas afetadas'));
+      fireEvent.change(screen.getByLabelText('Fim'), { target: { value: '2026-11-10T20:00' } });
+      expect(screen.queryByLabelText('Cancelar as reservas afetadas')).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Salvar manutenção' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Há 1 reserva(s) nesse período.');
+      expect(screen.getByLabelText('Cancelar as reservas afetadas')).not.toBeChecked();
+      expect(ctx.db.bookings.find((item) => item.id === 5)?.status).toBe('active');
+    });
+
     it('janela cobrindo agora mostra "Em manutenção até"', async () => {
       const { admin } = await setupTestApi({ now: () => NOW });
       const user = userEvent.setup();
