@@ -69,4 +69,11 @@ describe('bookingHandlers', () => {
     await expect(api.createBooking(player.token, slot))
       .rejects.toMatchObject({ status: 409, message: 'Esse horário acabou de ser reservado por outra pessoa.' });
   });
+  it('searchPlayers devolve no máximo 10 resultados', async () => {
+    const { api, player, ctx } = await setupTestApi({ now });
+    for (let n = 1; n <= 12; n++) {
+      ctx.db.accounts.push({ user: { id: 100 + n, name: `Jogador ${n}`, email: `j${n}@clube.example`, created_at: '2026-01-01T12:00:00.000Z' }, admin: false });
+    }
+    expect(await api.searchPlayers(player.token, 'jogador')).toHaveLength(10);
+  });
 });

@@ -40,7 +40,8 @@ export function SchedulePage({ session, onExpired, now = Date.now }: Props) {
   // Único ponto onde as próximas tasks encaixam WaitlistPanel e ReschedulePanel.
   function renderPanel(slot: Slot, courtName: string): ReactNode {
     if (slot.status === 'maintenance') return <p>Quadra em manutenção nesse horário.</p>;
-    if (slot.status === 'mine' && booked && booked.id === slot.booking_id) {
+    // Antes mesmo da recarga: o formulário some assim que a reserva é criada, sem segundo envio.
+    if (booked && booked.court.id === slot.court_id && Date.parse(booked.starts_at) === Date.parse(slot.starts_at)) {
       return (
         <div className="notice" role="status">
           <p>Reserva confirmada.</p>

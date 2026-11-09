@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../api/error';
 import type { Session } from '../api/types';
 import { setupTestApi } from '../test/api';
 import { SchedulePage } from './SchedulePage';
@@ -116,7 +117,7 @@ describe('SchedulePage', () => {
       await user.click(screen.getByRole('button', { name: 'Reservar quadra' }));
       expect(await screen.findByRole('status')).toHaveTextContent('Reserva confirmada');
       expect(screen.getByRole('link', { name: 'Ver reserva' })).toHaveAttribute('href', expect.stringMatching(/^#\/reservas\/\d+$/));
-      expect(screen.getByRole('button', { name: 'Quadra 2, 18:00, sua reserva' })).toBeInTheDocument();
+      expect(await screen.findByRole('button', { name: 'Quadra 2, 18:00, sua reserva' })).toBeInTheDocument();
       expect(ctx.db.bookings.at(-1)!.participants.map((item) => item.user_id)).toEqual([2, 3]);
     });
 
@@ -166,6 +167,66 @@ describe('SchedulePage', () => {
       await openPanel(user);
       current += 2 * 3600000; // a sessão do mock dura 1 h
       await user.click(screen.getByRole('button', { name: 'Reservar quadra' }));
+      await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+    });
+    it('depois de reservar, o formulário some antes da recarga e não há segundo envio', async () => {
+      const { player, api } = await setupTestApi({ now: () => NOW });
+      const original = api.getSchedule.bind(api);
+      let loads = 0;
+      vi.spyOn(api, 'getSchedule').mockImplementation(async (token, date) => {
+        if (++loads > 1) await new Promise((resolve) => setTimeout(resolve, 300));
+        return original(token, date);
+      });
+      const create = vi.spyOn(api, 'createBooking');
+      const user = userEvent.setup();
+      renderPage(player);
+      await openPanel(user);
+      await user.click(screen.getByRole('button', { name: 'Reservar quadra' }));
+      expect(await screen.findByRole('status')).toHaveTextContent('Reserva confirmada');
+      expect(screen.queryByRole('button', { name: 'Reservar quadra' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(create).toHaveBeenCalledTimes(1);
+    });
+
+    it('busca sem resultado mostra "Nenhum jogador encontrado."', async () => {
+      const { player } = await setupTestApi({ now: () => NOW });
+      const user = userEvent.setup();
+      renderPage(player);
+      await openPanel(user);
+      await user.type(screen.getByRole('searchbox', { name: 'Convidar jogadores' }), 'zzz');
+      expect(await screen.findByText('Nenhum jogador encontrado.')).toBeInTheDocument();
+    });
+
+    it('digitar rápido faz uma busca só', async () => {
+      const { player, api } = await setupTestApi({ now: () => NOW });
+      const search = vi.spyOn(api, 'searchPlayers');
+      const user = userEvent.setup();
+      renderPage(player);
+      await openPanel(user);
+      await user.type(screen.getByRole('searchbox', { name: 'Convidar jogadores' }), 'Mari');
+      await screen.findByRole('button', { name: 'Mariana Silva' });
+      expect(search).toHaveBeenCalledTimes(1);
+      expect(search).toHaveBeenCalledWith(player.token, 'Mari');
+    });
+
+    it('erro na busca mostra aviso sem expor detalhes', async () => {
+      const { player, api } = await setupTestApi({ now: () => NOW });
+      vi.spyOn(api, 'searchPlayers').mockRejectedValue(new ApiError('detalhe interno', 500));
+      const user = userEvent.setup();
+      renderPage(player);
+      await openPanel(user);
+      await user.type(screen.getByRole('searchbox', { name: 'Convidar jogadores' }), 'Mari');
+      expect(await screen.findByText('Não foi possível buscar jogadores. Tente de novo.')).toBeInTheDocument();
+      expect(screen.queryByText(/detalhe interno/)).not.toBeInTheDocument();
+    });
+
+    it('401 na busca chama onExpired', async () => {
+      const { player, api } = await setupTestApi({ now: () => NOW });
+      vi.spyOn(api, 'searchPlayers').mockRejectedValue(new ApiError('Sessão inválida.', 401));
+      const user = userEvent.setup();
+      const { onExpired } = renderPage(player);
+      await openPanel(user);
+      await user.type(screen.getByRole('searchbox', { name: 'Convidar jogadores' }), 'Mari');
       await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
     });
   });
