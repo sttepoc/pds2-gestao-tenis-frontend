@@ -363,6 +363,43 @@ describe('SchedulePage fila de espera', () => {
     expect(screen.queryByRole('button', { name: 'Entrar na fila de espera' })).not.toBeInTheDocument();
   });
 
+  it('404 ao sair da fila (já saiu em outra aba) volta ao estado de entrar', async () => {
+    const { pedro, api } = await setupTestApi({ now: () => NOW });
+    const user = userEvent.setup();
+    renderPage(pedro);
+    await openTaken(user);
+    await user.click(screen.getByRole('button', { name: 'Entrar na fila' }));
+    await screen.findByText('Você é o 1º da fila');
+    const entry = (await api.listWaitlist(pedro.token))[0];
+    await api.leaveWaitlist(pedro.token, entry.id);
+    await user.click(screen.getByRole('button', { name: 'Sair da fila' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Entrada não encontrada.');
+    expect(await screen.findByText('Você seria o 1º da fila')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Entrar na fila' })).toBeEnabled();
+  });
+
+  it('409 ao entrar (já estava na fila em outra aba) passa a mostrar a posição real', async () => {
+    const { pedro, api } = await setupTestApi({ now: () => NOW });
+    const user = userEvent.setup();
+    renderPage(pedro);
+    await openTaken(user);
+    await api.joinWaitlist(pedro.token, { court_id: 1, starts_at: '2026-11-10T22:00:00.000Z' });
+    await user.click(screen.getByRole('button', { name: 'Entrar na fila' }));
+    expect(await screen.findByText('Você é o 1º da fila')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sair da fila' })).toBeEnabled();
+  });
+
+  it('falha ao buscar a posição mostra alerta em vez de ficar mudo', async () => {
+    const { pedro, api } = await setupTestApi({ now: () => NOW });
+    await api.joinWaitlist(pedro.token, { court_id: 1, starts_at: '2026-11-10T22:00:00.000Z' });
+    api.listWaitlist = vi.fn().mockRejectedValue(new ApiError('Falha simulada.', 500));
+    const user = userEvent.setup();
+    renderPage(pedro);
+    await openTaken(user);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Falha simulada.');
+    expect(screen.getByText('Você está na fila')).toBeInTheDocument();
+  });
+
   it('conflito por manutenção não oferece a fila', async () => {
     const { pedro, ctx } = await setupTestApi({ now: () => NOW });
     const user = userEvent.setup();

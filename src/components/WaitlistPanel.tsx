@@ -22,6 +22,15 @@ export function WaitlistPanel({ slot, courtName, session, initial = null, onChan
   const [entry, setEntry] = useState<Entry | null>(() =>
     initial ?? (slot.waitlist_entry_id === null ? null : { id: slot.waitlist_entry_id, position: null }));
 
+  // Acompanha a agenda recarregada: ela é o estado real depois de 404 (saiu em outra aba) ou 409 (já entrou).
+  const slotEntryId = useRef(slot.waitlist_entry_id);
+  useEffect(() => {
+    if (slotEntryId.current === slot.waitlist_entry_id) return;
+    slotEntryId.current = slot.waitlist_entry_id;
+    const id = slot.waitlist_entry_id;
+    setEntry((current) => (id === null ? null : current?.id === id ? current : { id, position: null }));
+  }, [slot.waitlist_entry_id]);
+
   // A agenda só informa o id da entrada; a posição vem da lista do jogador.
   const needsPosition = entry !== null && entry.position === null;
   const entryId = entry?.id;
@@ -30,9 +39,13 @@ export function WaitlistPanel({ slot, courtName, session, initial = null, onChan
     let active = true;
     listWaitlist(session.token).then((items) => {
       const found = items.find((item) => item.id === entryId);
-      if (active && found) setEntry({ id: found.id, position: found.position });
+      if (!active) return;
+      if (found) setEntry({ id: found.id, position: found.position });
+      else setError('Não foi possível confirmar sua posição na fila.');
     }).catch((failure: unknown) => {
-      if (active && isExpired(failure)) onExpired();
+      if (!active) return;
+      if (isExpired(failure)) return onExpired();
+      setError(errorMessage(failure, 'Não foi possível confirmar sua posição na fila.'));
     });
     return () => { active = false; };
   }, [needsPosition, entryId, session.token, onExpired]);
@@ -54,8 +67,9 @@ export function WaitlistPanel({ slot, courtName, session, initial = null, onChan
       onChange();
     } catch (failure) {
       if (isExpired(failure)) return onExpired();
-      // Entrada que já não existe: a agenda recarrega e mostra o estado real.
-      if (failure instanceof ApiError && failure.status === 404) onChange();
+      // Entrada que já não existe (404) ou já existente (409): a agenda recarrega e mostra o estado real.
+      if (failure instanceof ApiError && failure.status === 404 && entry) setEntry(null);
+      if (failure instanceof ApiError && (failure.status === 404 || failure.status === 409)) onChange();
       setError(errorMessage(failure, 'Não foi possível atualizar a fila. Tente de novo.'));
     } finally {
       sending.current = false;
@@ -68,7 +82,7 @@ export function WaitlistPanel({ slot, courtName, session, initial = null, onChan
       <h3>Fila de espera</h3>
       {error && <p className="alert" role="alert">{error}</p>}
       <p>
-        {!entry && `Você seria o ${slot.waitlist_size + 1}º da fila`}
+        {!entry && `Você seria o ${slot.waitlist_size - (slot.waitlist_entry_id === null ? 0 : 1) + 1}º da fila`}
         {entry && entry.position !== null && `Você é o ${entry.position}º da fila`}
         {entry && entry.position === null && 'Você está na fila'}
       </p>
