@@ -10,13 +10,14 @@ type Props = {
   session: Session;
   onCancelled: (booking: Booking) => void;
   onExpired: () => void;
+  now?: () => number;
 };
 
-export function CancelBookingAction({ booking, session, onCancelled, onExpired }: Props) {
+export function CancelBookingAction({ booking, session, onCancelled, onExpired, now = Date.now }: Props) {
   const [asking, setAsking] = useState(false);
   const opener = useRef<HTMLButtonElement>(null);
-  // Quem decide se já começou é o servidor (422); o painel mostra a mensagem.
-  if (booking.my_role !== 'organizer' || booking.status !== 'active') return null;
+  // Em andamento ainda vem como ativa; o servidor também confere (422).
+  if (booking.my_role !== 'organizer' || booking.status !== 'active' || Date.parse(booking.starts_at) <= now()) return null;
 
   async function confirm() {
     try {

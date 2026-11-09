@@ -13,11 +13,12 @@ type Props = {
   id: number;
   session: Session;
   onExpired: () => void;
+  now?: () => number;
 };
 
 const statusLabels = { completed: 'Concluída', cancelled: 'Cancelada' } as const;
 
-export function BookingDetailPage({ id, session, onExpired }: Props) {
+export function BookingDetailPage({ id, session, onExpired, now }: Props) {
   // 404 vira null (reserva inexistente ou de outra pessoa); o resto segue para o useLoad.
   const loadBooking = () => getBooking(session.token, id).catch((error: unknown) => {
     if (error instanceof ApiError && error.status === 404) return null;
@@ -75,9 +76,9 @@ export function BookingDetailPage({ id, session, onExpired }: Props) {
           <span>{confirmed} de {booking.participants.length} confirmaram</span>
         </p>
         {notice && <p className="notice" role="status">{notice}</p>}
-        <AttendanceActions booking={booking} session={session} onChange={setData} onExpired={onExpired} />
+        <AttendanceActions booking={booking} session={session} onChange={setData} onExpired={onExpired} now={now} />
         <CancelBookingAction
-          booking={booking} session={session} onExpired={onExpired}
+          booking={booking} session={session} onExpired={onExpired} now={now}
           onCancelled={(cancelled) => { setData(cancelled); setNotice('Reserva cancelada.'); }}
         />
         <AttendanceList participants={booking.participants} />

@@ -8,15 +8,16 @@ type Props = {
   session: Session;
   onChange: (booking: Booking) => void;
   onExpired: () => void;
+  now?: () => number;
 };
 
-export function AttendanceActions({ booking, session, onChange, onExpired }: Props) {
+export function AttendanceActions({ booking, session, onChange, onExpired, now = Date.now }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const sending = useRef(false);
   const mine = booking.participants.find((item) => item.id === session.user.id);
-  // Quem decide se já começou é o servidor (422); 'completed' e 'cancelled' já chegam marcadas.
-  if (booking.my_role !== 'participant' || !mine || booking.status !== 'active') return null;
+  // Em andamento ainda vem como ativa; o servidor também confere (422).
+  if (booking.my_role !== 'participant' || !mine || booking.status !== 'active' || Date.parse(booking.starts_at) <= now()) return null;
 
   async function respond(response: 'confirmed' | 'declined') {
     if (sending.current) return;

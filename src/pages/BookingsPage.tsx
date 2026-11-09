@@ -11,6 +11,7 @@ import { routePaths } from '../navigation';
 type Props = {
   session: Session;
   onExpired: () => void;
+  now?: () => number;
 };
 
 type Scope = 'upcoming' | 'past';
@@ -23,7 +24,7 @@ const TABS = [
 
 const empty: Record<Scope, string> = { upcoming: 'Nenhuma reserva marcada.', past: 'Nenhuma reserva anterior.' };
 
-export function BookingsPage({ session, onExpired }: Props) {
+export function BookingsPage({ session, onExpired, now }: Props) {
   const [tab, setTab] = useState<string>('upcoming');
   const scope = tab as Scope;
   const [notice, setNotice] = useState('');
@@ -69,8 +70,8 @@ export function BookingsPage({ session, onExpired }: Props) {
       <div className="booking-list">
         {items.map((item) => (
           <BookingCard key={item.id} booking={item}>
-            <AttendanceActions booking={item} session={session} onChange={replace} onExpired={onExpired} />
-            <CancelBookingAction booking={item} session={session} onCancelled={remove} onExpired={onExpired} />
+            <AttendanceActions booking={item} session={session} onChange={replace} onExpired={onExpired} now={now} />
+            <CancelBookingAction booking={item} session={session} onCancelled={remove} onExpired={onExpired} now={now} />
           </BookingCard>
         ))}
       </div>

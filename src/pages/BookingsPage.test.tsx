@@ -10,7 +10,7 @@ const NOW = Date.parse('2026-11-09T12:00:00-03:00');
 
 function renderPage(session: Session) {
   const onExpired = vi.fn();
-  const view = render(<BookingsPage session={session} onExpired={onExpired} />);
+  const view = render(<BookingsPage session={session} onExpired={onExpired} now={() => NOW} />);
   return { ...view, onExpired };
 }
 
@@ -214,5 +214,24 @@ describe('BookingsPage cancelamento', () => {
     api.cancelBooking = vi.fn().mockRejectedValueOnce(new ApiError('Sessão expirada.', 401)) as typeof real;
     await user.click(screen.getByRole('button', { name: 'Cancelar reserva' }));
     await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+  });
+});
+
+describe('BookingsPage reserva em andamento', () => {
+  it('não oferece Cancelar nem presença', async () => {
+    const { player, ctx } = await setupTestApi({ now: () => NOW });
+    ctx.db.bookings.push({
+      id: 50, court_id: 1, starts_at: '2026-11-09T14:30:00.000Z', ends_at: '2026-11-09T15:30:00.000Z',
+      status: 'active', organizer_id: 3, participants: [{ user_id: 3, attendance: 'confirmed' }, { user_id: 2, attendance: 'pending' }],
+    });
+    ctx.db.bookings.push({
+      id: 51, court_id: 2, starts_at: '2026-11-09T14:30:00.000Z', ends_at: '2026-11-09T15:30:00.000Z',
+      status: 'active', organizer_id: 2, participants: [{ user_id: 2, attendance: 'confirmed' }],
+    });
+    renderPage(player);
+    const guest = (await screen.findByRole('link', { name: 'Quadra 1 · 11:30–12:30' })).closest('article')!;
+    const own = screen.getByRole('link', { name: 'Quadra 2 · 11:30–12:30' }).closest('article')!;
+    expect(within(guest).queryByRole('button')).not.toBeInTheDocument();
+    expect(within(own).queryByRole('button')).not.toBeInTheDocument();
   });
 });

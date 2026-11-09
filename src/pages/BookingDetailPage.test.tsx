@@ -10,7 +10,7 @@ const NOW = Date.parse('2026-11-09T12:00:00-03:00');
 
 function renderPage(session: Session, id: number) {
   const onExpired = vi.fn();
-  const view = render(<BookingDetailPage id={id} session={session} onExpired={onExpired} />);
+  const view = render(<BookingDetailPage id={id} session={session} onExpired={onExpired} now={() => NOW} />);
   return { ...view, onExpired };
 }
 
@@ -135,5 +135,26 @@ describe('BookingDetailPage cancelamento', () => {
     renderPage(mariana, 5);
     await screen.findByRole('heading', { level: 1, name: 'Quadra 1' });
     expect(screen.queryByRole('button', { name: /^Cancelar/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('BookingDetailPage reserva em andamento', () => {
+  it('não oferece Cancelar nem presença', async () => {
+    const { player, ctx } = await setupTestApi({ now: () => NOW });
+    ctx.db.bookings.push({
+      id: 50, court_id: 1, starts_at: '2026-11-09T14:30:00.000Z', ends_at: '2026-11-09T15:30:00.000Z',
+      status: 'active', organizer_id: 3, participants: [{ user_id: 3, attendance: 'confirmed' }, { user_id: 2, attendance: 'pending' }],
+    });
+    ctx.db.bookings.push({
+      id: 51, court_id: 2, starts_at: '2026-11-09T14:30:00.000Z', ends_at: '2026-11-09T15:30:00.000Z',
+      status: 'active', organizer_id: 2, participants: [{ user_id: 2, attendance: 'confirmed' }],
+    });
+    const guest = renderPage(player, 50);
+    await screen.findByRole('heading', { level: 1, name: 'Quadra 1' });
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    guest.unmount();
+    renderPage(player, 51);
+    await screen.findByRole('heading', { level: 1, name: 'Quadra 2' });
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });
