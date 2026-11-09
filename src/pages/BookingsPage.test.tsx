@@ -175,7 +175,7 @@ describe('BookingsPage cancelamento', () => {
     const opener = await screen.findByRole('button', { name: cancelName });
     await user.click(opener);
     const dialog = screen.getByRole('alertdialog', { name: 'Cancelar reserva?' });
-    expect(within(dialog).getByText('Os participantes serão avisados e a vaga vai para a fila de espera.')).toBeInTheDocument();
+    expect(within(dialog).getByText('A reserva será cancelada para todos os participantes e a vaga vai para a fila de espera.')).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: 'Manter reserva' })).toHaveFocus();
     await user.click(within(dialog).getByRole('button', { name: 'Manter reserva' }));
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();

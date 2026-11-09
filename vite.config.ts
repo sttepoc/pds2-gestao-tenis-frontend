@@ -13,6 +13,8 @@ export default defineConfig(({ mode }) => {
       setupFiles: ['src/test/setup.ts'],
       restoreMocks: true,
       unstubGlobals: true,
+      // Fuso da máquina diferente do clube: prova que as datas usam America/Sao_Paulo, não o fuso local.
+      env: { TZ: 'Asia/Tokyo' },
     },
     server: {
       port: 5173,

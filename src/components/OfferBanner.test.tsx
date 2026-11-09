@@ -115,4 +115,34 @@ describe('OfferBanner', () => {
     act(() => { document.dispatchEvent(new Event('visibilitychange')); });
     expect(await screen.findByRole('region', { name: 'Vaga liberada' })).toBeInTheDocument();
   });
+
+  it('recarregar ao voltar à aba mantém a mesma faixa montada, com o foco, até chegar a lista nova', async () => {
+    const { api, pedro } = await offered();
+    renderHome(pedro);
+    const banner = await screen.findByRole('region', { name: 'Vaga liberada' });
+    const accept = within(banner).getByRole('button', { name: 'Aceitar vaga' });
+    act(() => { accept.focus(); });
+    let finish!: () => void;
+    const original = api.listWaitlist.bind(api);
+    vi.spyOn(api, 'listWaitlist').mockImplementationOnce((token) =>
+      new Promise((resolve) => { finish = () => resolve(original(token)); }));
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
+    act(() => { document.dispatchEvent(new Event('visibilitychange')); });
+    await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
+    // Recarregando: a faixa é o mesmo elemento e o botão segue com o foco.
+    expect(screen.getByRole('region', { name: 'Vaga liberada' })).toBe(banner);
+    expect(accept).toHaveFocus();
+    await act(async () => { finish(); });
+    expect(screen.getByRole('region', { name: 'Vaga liberada' })).toBe(banner);
+    expect(accept).toHaveFocus();
+  });
+
+  it('trocar de sessão não mostra a faixa da sessão anterior enquanto carrega', async () => {
+    const { api, pedro, admin } = await offered();
+    const view = render(<HomePage session={pedro} access={{ status: 'denied' }} onRetry={() => {}} onExpired={vi.fn()} />);
+    expect(await screen.findByRole('region', { name: 'Vaga liberada' })).toBeInTheDocument();
+    vi.spyOn(api, 'listWaitlist').mockImplementationOnce(() => new Promise(() => {}));
+    view.rerender(<HomePage session={admin} access={{ status: 'denied' }} onRetry={() => {}} onExpired={vi.fn()} />);
+    expect(screen.queryByRole('region', { name: 'Vaga liberada' })).not.toBeInTheDocument();
+  });
 });

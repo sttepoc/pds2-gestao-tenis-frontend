@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { clubDate, clubTime, dayParts, formatClubDateTime, fromClubLocal, nextClubDays } from './club-time';
 
 describe('club-time', () => {
+  it('os testes rodam em Tóquio, longe do fuso do clube (ver vite.config.ts)', () => {
+    expect(new Date(0).getTimezoneOffset()).toBe(-540);
+    expect(new Date('2026-11-10T02:30:00Z').getDate()).toBe(10); // em Tóquio já é dia 10…
+    expect(clubDate('2026-11-10T02:30:00Z')).toBe('2026-11-09'); // …no clube ainda é dia 9
+  });
   it('clubDate usa o fuso do clube perto da meia-noite', () => {
     expect(clubDate('2026-11-10T02:30:00Z')).toBe('2026-11-09');
   });

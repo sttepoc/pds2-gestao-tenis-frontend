@@ -1,4 +1,5 @@
 export const CLUB_TIME_ZONE = 'America/Sao_Paulo';
+// O Brasil não tem horário de verão desde 2019, então o deslocamento do clube é fixo.
 export const CLUB_UTC_OFFSET = '-03:00';
 
 const dateFormat = new Intl.DateTimeFormat('en-CA', {

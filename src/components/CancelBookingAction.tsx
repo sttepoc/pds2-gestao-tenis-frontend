@@ -45,7 +45,7 @@ export function CancelBookingAction({ booking, session, onCancelled, onExpired, 
       {asking && (
         <ConfirmAction
           title="Cancelar reserva?"
-          description="Os participantes serão avisados e a vaga vai para a fila de espera."
+          description="A reserva será cancelada para todos os participantes e a vaga vai para a fila de espera."
           confirmLabel="Cancelar reserva" keepLabel="Manter reserva" danger
           onConfirm={confirm} onKeep={keep}
         />
