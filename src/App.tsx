@@ -3,6 +3,7 @@ import type { Session } from './api/auth';
 import { USE_MOCK_API } from './api/config';
 import { AppLayout } from './components/AppLayout';
 import { BallMark, CourtBackdrop } from './components/CourtBackdrop';
+import { Loading } from './components/LoadStatus';
 import { LoginForm } from './components/LoginForm';
 import { MockNotice } from './components/MockNotice';
 import { useMemberAccess } from './hooks/useMemberAccess';
@@ -30,6 +31,12 @@ const intro = (
   </section>
 );
 const mockNotice = import.meta.env.DEV && USE_MOCK_API ? <MockNotice /> : undefined;
+
+const TITLES: Record<Route, string> = {
+  home: 'Início', account: 'Minha conta', members: 'Membros',
+  courts: 'Quadras', schedule: 'Agenda', reschedule: 'Remarcar', bookings: 'Minhas reservas',
+  booking: 'Reserva', login: 'Entrar', 'not-found': 'Página não encontrada',
+};
 
 function ClubApp({ session, route, id, onLogout, onExpired }: {
   session: Session;
@@ -80,19 +87,15 @@ export function App() {
   const { route, id } = useRoute();
   const [leaving, startLeaving] = useTransition();
 
+  const authenticated = auth.state.status === 'authenticated';
   useEffect(() => {
-    if (auth.state.status === 'authenticated' && (route === 'login' || !window.location.hash)) {
-      navigate('home', true);
-    }
-    const titles = {
-      home: 'Início', account: 'Minha conta', members: 'Membros',
-      courts: 'Quadras', schedule: 'Agenda', reschedule: 'Remarcar', bookings: 'Minhas reservas',
-      booking: 'Reserva', login: 'Entrar', 'not-found': 'Página não encontrada',
-    };
-    const title = auth.state.status === 'authenticated' ? titles[route]
-      : auth.state.status === 'anonymous' ? 'Entrar' : 'Verificar sessão';
+    if (authenticated && (route === 'login' || !window.location.hash)) navigate('home', true);
+  }, [route, authenticated]);
+
+  const title = authenticated ? TITLES[route] : auth.state.status === 'anonymous' ? 'Entrar' : 'Verificar sessão';
+  useEffect(() => {
     document.title = `${title} · Clube de Tênis`;
-  }, [route, auth.state.status]);
+  }, [title]);
 
   function handleLogin(session: Session) {
     auth.signIn(session);
@@ -112,7 +115,7 @@ export function App() {
       <section className="card recovery-card" aria-labelledby="session-check-title">
         <p className="eyebrow">Bem-vindo de volta</p>
         <h2 className="card-title" id="session-check-title">Confirmando sua sessão</h2>
-        <p className="status-line" role="status"><span className="rally" aria-hidden="true" />Só um instante…</p>
+        <Loading>Só um instante…</Loading>
       </section>
     );
   } else if (auth.state.status === 'unavailable') {

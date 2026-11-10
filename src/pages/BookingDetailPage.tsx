@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { getBooking } from '../api/bookings';
-import { ApiError } from '../api/error';
+import { findBooking } from '../api/bookings';
 import type { Session } from '../api/types';
 import { AttendanceActions } from '../components/AttendanceActions';
 import { AttendanceList } from '../components/AttendanceList';
 import { CancelBookingAction } from '../components/CancelBookingAction';
+import { BackToBookings, BookingUnavailable, Loading } from '../components/LoadStatus';
 import { RescheduleLink } from '../components/RescheduleLink';
 import { useLoad } from '../hooks/useLoad';
 import { clubDateLabel, clubTime } from '../lib/club-time';
-import { routePaths } from '../navigation';
 
 type Props = {
   id: number;
@@ -20,41 +19,12 @@ type Props = {
 const statusLabels = { completed: 'Concluída', cancelled: 'Cancelada' } as const;
 
 export function BookingDetailPage({ id, session, onExpired, now }: Props) {
-  // 404 vira null (reserva inexistente ou de outra pessoa); o resto segue para o useLoad.
-  const loadBooking = () => getBooking(session.token, id).catch((error: unknown) => {
-    if (error instanceof ApiError && error.status === 404) return null;
-    throw error;
-  });
-  const { state, reload, setData } = useLoad(`booking:${id}`, loadBooking, onExpired);
+  const { state, reload, setData } = useLoad(`booking:${id}`, () => findBooking(session.token, id), onExpired);
   const [notice, setNotice] = useState('');
-  const back = <a className="text-link" href={routePaths.bookings}><span aria-hidden="true">←</span> Minhas reservas</a>;
 
-  if (state.status === 'loading') {
-    return <p className="status-line" role="status"><span className="rally" aria-hidden="true" />Carregando reserva…</p>;
-  }
-  if (state.status === 'error') {
-    return (
-      <>
-        <section className="content-panel empty-panel">
-          <h1>Não foi possível abrir a reserva</h1>
-          <p className="alert" role="alert">{state.message}</p>
-          <button className="button button--secondary" type="button" onClick={reload}>Tentar novamente</button>
-        </section>
-        {back}
-      </>
-    );
-  }
-  if (state.data === null) {
-    return (
-      <>
-        <section className="content-panel empty-panel">
-          <h1>Reserva não encontrada</h1>
-          <p>Ela pode ter sido removida ou não ser sua.</p>
-        </section>
-        {back}
-      </>
-    );
-  }
+  if (state.status === 'loading') return <Loading>Carregando reserva…</Loading>;
+  if (state.status === 'error') return <BookingUnavailable error={state.message} onRetry={reload} />;
+  if (state.data === null) return <BookingUnavailable />;
   const booking = state.data;
   const confirmed = booking.participants.filter((item) => item.attendance === 'confirmed').length;
   const role = booking.my_role === 'organizer' ? 'Organizador' : `Convidado por ${booking.organizer.name}`;
@@ -87,7 +57,7 @@ export function BookingDetailPage({ id, session, onExpired, now }: Props) {
         </div>
         <AttendanceList participants={booking.participants} />
       </section>
-      {back}
+      <BackToBookings />
     </>
   );
 }

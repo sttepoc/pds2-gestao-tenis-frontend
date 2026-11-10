@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useState } from 'react';
 import { searchPlayers } from '../api/bookings';
 import { isExpired } from '../api/error';
 import type { Player, Session } from '../api/types';
@@ -18,8 +18,7 @@ export function PlayerPicker({ value, onChange, max, session, onExpired }: Props
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Player[]>([]);
   const [message, setMessage] = useState('');
-  const expiredRef = useRef(onExpired);
-  expiredRef.current = onExpired;
+  const expire = useEffectEvent(onExpired);
 
   useEffect(() => {
     const term = query.trim();
@@ -36,7 +35,7 @@ export function PlayerPicker({ value, onChange, max, session, onExpired }: Props
         setMessage(found.length === 0 ? 'Nenhum jogador encontrado.' : '');
       }).catch((error: unknown) => {
         if (!active) return;
-        if (isExpired(error)) return expiredRef.current();
+        if (isExpired(error)) return expire();
         setResults([]);
         setMessage('Não foi possível buscar jogadores. Tente de novo.');
       });

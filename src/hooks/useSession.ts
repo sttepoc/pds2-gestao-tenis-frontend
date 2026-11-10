@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ApiError, fetchCurrentUser, logout, type Session } from '../api/auth';
+import { fetchCurrentUser, logout, type Session } from '../api/auth';
+import { errorMessage, isExpired } from '../api/error';
 import { clearSession, loadSession, saveSession } from '../api/session-storage';
 
 type AuthState =
@@ -24,10 +25,12 @@ export function useSession() {
     setState({ status: 'anonymous', session: null, notice });
   }, []);
 
+  // Depende só da sessão em verificação, não do estado inteiro.
+  const checking = state.status === 'checking' ? state.session : null;
   useEffect(() => {
-    if (state.status !== 'checking') return;
+    if (!checking) return;
     let active = true;
-    const session = state.session;
+    const session = checking;
     fetchCurrentUser(session.token).then((user) => {
       if (!active) return;
       if (Date.parse(session.expiresAt) <= Date.now()) return endSession();
@@ -36,14 +39,14 @@ export function useSession() {
       setState({ status: 'authenticated', session: updated });
     }).catch((error: unknown) => {
       if (!active) return;
-      if (error instanceof ApiError && error.status === 401) return endSession();
+      if (isExpired(error)) return endSession();
       setState({
         status: 'unavailable', session,
-        message: error instanceof ApiError ? error.message : 'Não foi possível confirmar sua sessão. Tente novamente.',
+        message: errorMessage(error, 'Não foi possível confirmar sua sessão. Tente novamente.'),
       });
     });
     return () => { active = false; };
-  }, [state, endSession]);
+  }, [checking, endSession]);
 
   const expiresAt = state.session?.expiresAt;
   useEffect(() => {

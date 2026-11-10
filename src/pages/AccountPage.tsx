@@ -2,13 +2,21 @@ import type { Session } from '../api/auth';
 import { AccessStatus } from '../components/AccessStatus';
 import type { MemberAccess } from '../hooks/useMemberAccess';
 
+// Criar um Intl.DateTimeFormat é caro: os dois formatos são criados uma vez só.
+const dayFormat = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long' });
+const dayTimeFormat = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'long', timeStyle: 'short' });
+
+const ACCESS_LABELS: Record<MemberAccess['status'], string> = {
+  allowed: 'Autorizado',
+  denied: 'Não autorizado',
+  checking: 'Verificando…',
+  error: 'Verificação indisponível',
+};
+
 function dateLabel(value: string, time = false) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return 'Não informado';
-  return new Intl.DateTimeFormat('pt-BR', {
-    dateStyle: 'long',
-    ...(time ? { timeStyle: 'short' as const } : {}),
-  }).format(date);
+  return (time ? dayTimeFormat : dayFormat).format(date);
 }
 
 export function AccountPage({ session, access, onRetry }: {
@@ -16,12 +24,7 @@ export function AccountPage({ session, access, onRetry }: {
   access: MemberAccess;
   onRetry: () => void;
 }) {
-  const accessLabel = {
-    allowed: 'Autorizado',
-    denied: 'Não autorizado',
-    checking: 'Verificando…',
-    error: 'Verificação indisponível',
-  }[access.status];
+  const accessLabel = ACCESS_LABELS[access.status];
 
   return (
     <>

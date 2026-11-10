@@ -14,6 +14,16 @@ type Props = {
   mockNotice?: ReactNode;
 };
 
+type NavLink = { route: keyof typeof routePaths; label: string };
+
+const LINKS: NavLink[] = [
+  { route: 'home', label: 'Início' },
+  { route: 'schedule', label: 'Agenda' },
+  { route: 'bookings', label: 'Minhas reservas' },
+  { route: 'account', label: 'Minha conta' },
+];
+const ADMIN_LINKS: NavLink[] = [...LINKS, { route: 'members', label: 'Membros' }, { route: 'courts', label: 'Quadras' }];
+
 export function AppLayout({ session, route, access, onLogout, children, mockNotice }: Props) {
   const mainRef = useRef<HTMLElement>(null);
   const [leaving, startLeaving] = useTransition();
@@ -24,16 +34,7 @@ export function AppLayout({ session, route, access, onLogout, children, mockNoti
     window.scrollTo({ top: 0 });
   }, [route]);
 
-  const links = [
-    { route: 'home' as const, label: 'Início' },
-    { route: 'schedule' as const, label: 'Agenda' },
-    { route: 'bookings' as const, label: 'Minhas reservas' },
-    { route: 'account' as const, label: 'Minha conta' },
-    ...(access.status === 'allowed' ? [
-      { route: 'members' as const, label: 'Membros' },
-      { route: 'courts' as const, label: 'Quadras' },
-    ] : []),
-  ];
+  const links = access.status === 'allowed' ? ADMIN_LINKS : LINKS;
 
   return (
     <div className="workspace">

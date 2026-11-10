@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useEffectEvent, useState } from 'react';
 import { checkMemberAccess } from '../api/access';
-import { ApiError } from '../api/error';
+import { errorMessage, isExpired } from '../api/error';
 
 export type MemberAccess =
   | { status: 'checking' | 'allowed' | 'denied' }
@@ -9,6 +9,7 @@ export type MemberAccess =
 export function useMemberAccess(token: string, onExpired: () => void) {
   const [access, setAccess] = useState<MemberAccess>({ status: 'checking' });
   const [attempt, setAttempt] = useState(0);
+  const expire = useEffectEvent(onExpired);
 
   useEffect(() => {
     let active = true;
@@ -16,11 +17,11 @@ export function useMemberAccess(token: string, onExpired: () => void) {
       if (active) setAccess({ status });
     }).catch((error: unknown) => {
       if (!active) return;
-      if (error instanceof ApiError && error.status === 401) return onExpired();
-      setAccess({ status: 'error', message: error instanceof ApiError ? error.message : 'Não foi possível verificar seu acesso.' });
+      if (isExpired(error)) return expire();
+      setAccess({ status: 'error', message: errorMessage(error, 'Não foi possível verificar seu acesso.') });
     });
     return () => { active = false; };
-  }, [token, attempt, onExpired]);
+  }, [token, attempt]);
 
   function retry() {
     setAccess({ status: 'checking' });

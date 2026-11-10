@@ -49,6 +49,43 @@ describe('useLoad', () => {
     expect(result.current.state).toEqual({ status: 'ready', data: 9 });
   });
 
+  it('durante a recarga da mesma chave mantém os dados anteriores em previous', async () => {
+    let finish!: (value: number) => void;
+    let n = 0;
+    const load = () => (++n === 1 ? Promise.resolve(1) : new Promise<number>((resolve) => { finish = resolve; }));
+    const { result } = renderHook(() => useLoad('a', load, vi.fn()));
+    await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: 1 }));
+    act(() => result.current.reload());
+    expect(result.current.state).toEqual({ status: 'loading', previous: 1 });
+    await act(async () => finish(2));
+    expect(result.current.state).toEqual({ status: 'ready', data: 2 });
+  });
+
+  it('trocar a chave volta a carregando no mesmo render, sem dados da chave anterior', async () => {
+    const { result, rerender } = renderHook(
+      ({ k }) => useLoad(k, () => (k === 'a' ? Promise.resolve('primeira') : new Promise<string>(() => {})), vi.fn()),
+      { initialProps: { k: 'a' } },
+    );
+    await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: 'primeira' }));
+    rerender({ k: 'b' });
+    expect(result.current.state).toEqual({ status: 'loading' });
+    expect(result.current.state).not.toHaveProperty('previous', 'primeira');
+  });
+
+  it('setData criado para uma chave é ignorado depois que a chave muda', async () => {
+    const { result, rerender } = renderHook(
+      ({ k }) => useLoad(k, async () => [k], vi.fn()),
+      { initialProps: { k: 'a' } },
+    );
+    await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: ['a'] }));
+    const setDataForA = result.current.setData;
+    rerender({ k: 'b' });
+    await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: ['b'] }));
+    act(() => setDataForA((items) => [...items, 'atrasada']));
+    act(() => setDataForA(['valor atrasado']));
+    expect(result.current.state).toEqual({ status: 'ready', data: ['b'] });
+  });
+
   it('setData aceita função aplicada aos dados atuais e ignora se não estiver pronto', async () => {
     const { result } = renderHook(() => useLoad('a', async () => 5, vi.fn()));
     act(() => result.current.setData((value) => value + 1));

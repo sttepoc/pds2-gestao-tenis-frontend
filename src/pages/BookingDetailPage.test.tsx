@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/error';
@@ -105,7 +105,7 @@ describe('BookingDetailPage', () => {
     const user = userEvent.setup();
     const { onExpired } = renderPage(mariana, 5);
     await user.click(await screen.findByRole('button', { name: 'Confirmar presença' }));
-    await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+    await waitFor(() => expect(onExpired).toHaveBeenCalled());
   });
 
   it('o detalhe mostra a data do clube', async () => {

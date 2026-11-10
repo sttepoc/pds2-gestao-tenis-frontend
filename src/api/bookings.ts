@@ -1,4 +1,5 @@
 import { getApi } from './client';
+import { ApiError } from './error';
 import type { BookingInput, SlotRef } from './types';
 
 export async function getSchedule(token: string, date: string) {
@@ -15,6 +16,15 @@ export async function listBookings(token: string, scope: 'upcoming' | 'past') {
 }
 export async function getBooking(token: string, id: number) {
   return (await getApi()).getBooking(token, id);
+}
+/** Como getBooking, mas 404 (reserva inexistente ou de outra pessoa) vira `null`. */
+export async function findBooking(token: string, id: number) {
+  try {
+    return await getBooking(token, id);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
 }
 export async function cancelBooking(token: string, id: number) {
   return (await getApi()).cancelBooking(token, id);

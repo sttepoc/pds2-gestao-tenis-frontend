@@ -1,8 +1,8 @@
-import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { getBooking, getSchedule } from '../api/bookings';
-import { ApiError } from '../api/error';
+import { useMemo, useState, type ReactNode } from 'react';
+import { findBooking, getSchedule } from '../api/bookings';
 import type { Booking, Schedule, Session, Slot, SlotRef, WaitlistEntry } from '../api/types';
 import { BookingPanel } from '../components/BookingPanel';
+import { BookingUnavailable, LoadError, Loading } from '../components/LoadStatus';
 import { RescheduleBanner } from '../components/RescheduleBanner';
 import { ReschedulePanel } from '../components/ReschedulePanel';
 import { DayStrip } from '../components/DayStrip';
@@ -27,38 +27,10 @@ export function SchedulePage({ rescheduleId = null, ...props }: Props) {
 // Carrega a reserva a remarcar antes de abrir a agenda.
 function RescheduleAgenda({ id, ...props }: Omit<Props, 'rescheduleId'> & { id: number }) {
   const { session, onExpired } = props;
-  const loadBooking = () => getBooking(session.token, id).catch((error: unknown) => {
-    if (error instanceof ApiError && error.status === 404) return null;
-    throw error;
-  });
-  const { state, reload } = useLoad(`reschedule:${id}`, loadBooking, onExpired);
-  const back = <a className="text-link" href={routePaths.bookings}><span aria-hidden="true">←</span> Minhas reservas</a>;
-  if (state.status === 'loading') {
-    return <p className="status-line" role="status"><span className="rally" aria-hidden="true" />Carregando reserva…</p>;
-  }
-  if (state.status === 'error') {
-    return (
-      <>
-        <section className="content-panel empty-panel">
-          <h1>Não foi possível abrir a reserva</h1>
-          <p className="alert" role="alert">{state.message}</p>
-          <button className="button button--secondary" type="button" onClick={reload}>Tentar novamente</button>
-        </section>
-        {back}
-      </>
-    );
-  }
-  if (state.data === null) {
-    return (
-      <>
-        <section className="content-panel empty-panel">
-          <h1>Reserva não encontrada</h1>
-          <p>Ela pode ter sido removida ou não ser sua.</p>
-        </section>
-        {back}
-      </>
-    );
-  }
+  const { state, reload } = useLoad(`reschedule:${id}`, () => findBooking(session.token, id), onExpired);
+  if (state.status === 'loading') return <Loading>Carregando reserva…</Loading>;
+  if (state.status === 'error') return <BookingUnavailable error={state.message} onRetry={reload} />;
+  if (state.data === null) return <BookingUnavailable />;
   return <Agenda {...props} booking={state.data} />;
 }
 
@@ -73,7 +45,6 @@ function Agenda({ session, onExpired, booking, now = Date.now }: Omit<Props, 're
   const [booked, setBooked] = useState<Booking | null>(null);
   const [conflict, setConflict] = useState<(SlotRef & { message: string }) | null>(null);
   const [queued, setQueued] = useState<WaitlistEntry | null>(null);
-  const lastSchedule = useRef<Schedule | null>(null);
   const { state, reload } = useLoad(`schedule:${date}`, () => getSchedule(session.token, date), onExpired);
 
   function changeDate(next: string) {
@@ -147,7 +118,6 @@ function Agenda({ session, onExpired, booking, now = Date.now }: Omit<Props, 're
 
   function renderBody(schedule: Schedule) {
     if (schedule.courts.length === 0) return <p className="muted">Nenhuma quadra cadastrada ainda.</p>;
-    lastSchedule.current = schedule;
     const activeCourtId = schedule.courts.some((court) => court.id === courtId) ? courtId! : schedule.courts[0].id;
     const slot = selected && schedule.slots.find((item) =>
       item.court_id === selected.court_id && item.starts_at === selected.starts_at);
@@ -170,21 +140,15 @@ function Agenda({ session, onExpired, booking, now = Date.now }: Omit<Props, 're
   }
 
   let content: ReactNode;
-  // Depois de trocar o dia, o primeiro render ainda traz a grade do dia anterior.
-  if (state.status === 'loading' && lastSchedule.current?.date === date) {
-    // Recarga depois de reservar: mantém grade e painel montados, sem piscar.
-    content = renderBody(lastSchedule.current);
-  } else if (state.status === 'loading' || (state.status === 'ready' && state.data.date !== date)) {
-    content = <p className="status-line" role="status"><span className="rally" aria-hidden="true" />Carregando agenda…</p>;
-  } else if (state.status === 'error') {
-    content = (
-      <div className="access-feedback">
-        <p className="alert" role="alert">{state.message}</p>
-        <button className="button button--secondary" type="button" onClick={reload}>Tentar novamente</button>
-      </div>
-    );
-  } else {
+  if (state.status === 'ready') {
     content = renderBody(state.data);
+  } else if (state.status === 'loading' && state.previous) {
+    // Recarga do mesmo dia (depois de reservar): mantém grade e painel montados, sem piscar.
+    content = renderBody(state.previous);
+  } else if (state.status === 'loading') {
+    content = <Loading>Carregando agenda…</Loading>;
+  } else {
+    content = <LoadError message={state.message} onRetry={reload} />;
   }
 
   return (

@@ -4,6 +4,7 @@ import type { Booking, Session, WaitlistEntry } from '../api/types';
 import { AttendanceActions } from '../components/AttendanceActions';
 import { BookingCard } from '../components/BookingCard';
 import { CancelBookingAction } from '../components/CancelBookingAction';
+import { LoadError, Loading } from '../components/LoadStatus';
 import { OfferBanners } from '../components/OfferBanner';
 import { RescheduleLink } from '../components/RescheduleLink';
 import { WaitlistList } from '../components/WaitlistList';
@@ -35,6 +36,9 @@ export function BookingsPage({ session, onExpired, now }: Props) {
   const [scope, setScope] = useState<Scope>('upcoming');
   const [notice, setNotice] = useState('');
   const waitlist = useLoad('waitlist', () => listWaitlist(session.token), onExpired);
+  // A chave inclui o escopo: trocar de aba nunca mostra a lista da aba anterior,
+  // e setData de uma resposta atrasada não altera a lista do outro escopo.
+  const { state, reload, setData } = useLoad(`bookings:${scope}`, () => listBookings(session.token, scope), onExpired);
 
   function changeTab(id: string) {
     setTab(id);
@@ -42,41 +46,17 @@ export function BookingsPage({ session, onExpired, now }: Props) {
   }
 
   function renderWaitlist(): ReactNode {
-    if (waitlist.state.status === 'loading') {
-      return <p className="status-line" role="status"><span className="rally" aria-hidden="true" />Carregando fila…</p>;
-    }
-    if (waitlist.state.status === 'error') {
-      return (
-        <div className="access-feedback">
-          <p className="alert" role="alert">{waitlist.state.message}</p>
-          <button className="button button--secondary" type="button" onClick={waitlist.reload}>Tentar novamente</button>
-        </div>
-      );
-    }
+    if (waitlist.state.status === 'loading') return <Loading>Carregando fila…</Loading>;
+    if (waitlist.state.status === 'error') return <LoadError message={waitlist.state.message} onRetry={waitlist.reload} />;
     const left = (entry: WaitlistEntry) => waitlist.setData((latest) => latest.filter((item) => item.id !== entry.id));
     return <WaitlistList entries={waitlist.state.data} session={session} onChange={left} onExpired={onExpired} />;
   }
-  const { state, reload, setData } = useLoad(
-    `bookings:${scope}`,
-    async () => ({ scope, items: await listBookings(session.token, scope) }),
-    onExpired,
-  );
 
   function renderPanel(): ReactNode {
     if (tab === 'waitlist') return renderWaitlist();
-    // No primeiro render depois de trocar de aba ainda vem a lista da aba anterior.
-    if (state.status === 'loading' || (state.status === 'ready' && state.data.scope !== scope)) {
-      return <p className="status-line" role="status"><span className="rally" aria-hidden="true" />Carregando reservas…</p>;
-    }
-    if (state.status === 'error') {
-      return (
-        <div className="access-feedback">
-          <p className="alert" role="alert">{state.message}</p>
-          <button className="button button--secondary" type="button" onClick={reload}>Tentar novamente</button>
-        </div>
-      );
-    }
-    const items: Booking[] = state.data.items;
+    if (state.status === 'loading') return <Loading>Carregando reservas…</Loading>;
+    if (state.status === 'error') return <LoadError message={state.message} onRetry={reload} />;
+    const items = state.data;
     if (items.length === 0) {
       return (
         <div className="empty-state">
@@ -85,14 +65,12 @@ export function BookingsPage({ session, onExpired, now }: Props) {
         </div>
       );
     }
-    // Mescla na lista mais recente, e só se ela ainda for a das próximas.
+    // Mescla na lista mais recente do mesmo escopo (o useLoad ignora se a aba já mudou).
     const replace = (updated: Booking) =>
-      setData((latest) => latest.scope !== 'upcoming' ? latest
-        : { ...latest, items: latest.items.map((item) => (item.id === updated.id ? updated : item)) });
+      setData((latest) => latest.map((item) => (item.id === updated.id ? updated : item)));
     // A reserva cancelada sai de Próximas; em Anteriores ela aparece quando a aba carregar.
     const remove = (cancelled: Booking) => {
-      setData((latest) => latest.scope !== 'upcoming' ? latest
-        : { ...latest, items: latest.items.filter((item) => item.id !== cancelled.id) });
+      setData((latest) => latest.filter((item) => item.id !== cancelled.id));
       setNotice('Reserva cancelada.');
     };
     return (

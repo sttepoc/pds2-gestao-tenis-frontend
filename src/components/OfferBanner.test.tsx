@@ -1,6 +1,6 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { HomePage } from '../pages/HomePage';
 import { BookingsPage } from '../pages/BookingsPage';
 import { setupTestApi } from '../test/api';
@@ -27,9 +27,8 @@ function renderHome(session: Parameters<typeof HomePage>[0]['session']) {
   return { onExpired };
 }
 
+// Os spies são restaurados entre os testes pelo `restoreMocks: true` do vite.config.ts.
 describe('OfferBanner', () => {
-  afterEach(() => vi.restoreAllMocks());
-
   it('faixa aparece no Início e "Aceitar vaga" cria a reserva', async () => {
     const { pedro, ctx } = await offered();
     const user = userEvent.setup();
@@ -76,7 +75,7 @@ describe('OfferBanner', () => {
     advance(31);
     await user.click(within(banner).getByRole('button', { name: 'Aceitar vaga' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Essa oferta expirou.');
-    await vi.waitFor(() => expect(screen.queryByRole('region', { name: 'Vaga liberada' })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Vaga liberada' })).not.toBeInTheDocument());
     expect(screen.getByRole('alert')).toHaveTextContent('Essa oferta expirou.');
   });
 
@@ -99,7 +98,7 @@ describe('OfferBanner', () => {
     const banner = await screen.findByRole('region', { name: 'Vaga liberada' });
     ctx.scenario = 'expired';
     await user.click(within(banner).getByRole('button', { name: 'Recusar' }));
-    await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+    await waitFor(() => expect(onExpired).toHaveBeenCalled());
   });
 
   it('a faixa aparece quando a aba volta a ficar visível', async () => {
@@ -107,7 +106,7 @@ describe('OfferBanner', () => {
     const list = vi.spyOn(api, 'listWaitlist');
     renderHome(pedro);
     // Espera a primeira carga (ainda sem oferta) terminar antes de liberar a vaga.
-    await vi.waitFor(() => expect(list).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
     await act(async () => { await list.mock.results[0].value; });
     await act(async () => { await cancel(); });
     expect(screen.queryByRole('region', { name: 'Vaga liberada' })).not.toBeInTheDocument();
@@ -128,7 +127,7 @@ describe('OfferBanner', () => {
       new Promise((resolve) => { finish = () => resolve(original(token)); }));
     vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('visible');
     act(() => { document.dispatchEvent(new Event('visibilitychange')); });
-    await vi.waitFor(() => expect(finish).toBeTypeOf('function'));
+    await waitFor(() => expect(finish).toBeTypeOf('function'));
     // Recarregando: a faixa é o mesmo elemento e o botão segue com o foco.
     expect(screen.getByRole('region', { name: 'Vaga liberada' })).toBe(banner);
     expect(accept).toHaveFocus();

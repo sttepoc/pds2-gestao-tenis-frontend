@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/error';
@@ -124,7 +124,7 @@ describe('SchedulePage', () => {
   it('sessão expirada chama onExpired', async () => {
     const { player } = await setupTestApi({ now: () => NOW, scenario: 'expired' });
     const { onExpired } = renderPage(player);
-    await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+    await waitFor(() => expect(onExpired).toHaveBeenCalled());
   });
   describe('reservar', () => {
     const slot = { court_id: 2, starts_at: '2026-11-09T21:00:00.000Z', participant_ids: [] as number[] };
@@ -198,16 +198,15 @@ describe('SchedulePage', () => {
       await openPanel(user);
       current += 2 * 3600000; // a sessão do mock dura 1 h
       await user.click(screen.getByRole('button', { name: 'Reservar quadra' }));
-      await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+      await waitFor(() => expect(onExpired).toHaveBeenCalled());
     });
     it('depois de reservar, o formulário some antes da recarga e não há segundo envio', async () => {
       const { player, api } = await setupTestApi({ now: () => NOW });
       const original = api.getSchedule.bind(api);
       let loads = 0;
-      vi.spyOn(api, 'getSchedule').mockImplementation(async (token, date) => {
-        if (++loads > 1) await new Promise((resolve) => setTimeout(resolve, 300));
-        return original(token, date);
-      });
+      // A recarga depois de reservar nunca termina: o teste vê a tela "antes da recarga" sem depender de tempo.
+      vi.spyOn(api, 'getSchedule').mockImplementation((token, date) =>
+        ++loads > 1 ? new Promise(() => {}) : original(token, date));
       const create = vi.spyOn(api, 'createBooking');
       const user = userEvent.setup();
       renderPage(player);
@@ -258,7 +257,7 @@ describe('SchedulePage', () => {
       const { onExpired } = renderPage(player);
       await openPanel(user);
       await user.type(screen.getByRole('searchbox', { name: 'Convidar jogadores' }), 'Mari');
-      await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+      await waitFor(() => expect(onExpired).toHaveBeenCalled());
     });
   });
 
@@ -284,7 +283,7 @@ describe('SchedulePage', () => {
       expect(within(panel).getByText('De').nextSibling).toHaveTextContent('Quadra 1 · ter., 10 de nov. · 19:00');
       expect(within(panel).getByText('Para').nextSibling).toHaveTextContent('Quadra 2 · ter., 10 de nov. · 20:00 às 21:00');
       await user.click(screen.getByRole('button', { name: 'Confirmar novo horário' }));
-      await vi.waitFor(() => expect(window.location.hash).toBe('#/reservas/5'));
+      await waitFor(() => expect(window.location.hash).toBe('#/reservas/5'));
       const moved = ctx.db.bookings.find((item) => item.id === 5)!;
       expect(moved).toMatchObject({ court_id: 2, starts_at: '2026-11-10T23:00:00.000Z' });
     });
@@ -333,7 +332,7 @@ describe('SchedulePage', () => {
     it('sessão expirada ao carregar a reserva chama onExpired', async () => {
       const { player } = await setupTestApi({ now: () => NOW, scenario: 'expired' });
       const { onExpired } = renderPage(player, () => NOW, 5);
-      await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+      await waitFor(() => expect(onExpired).toHaveBeenCalled());
     });
   });
 });
@@ -389,7 +388,7 @@ describe('SchedulePage fila de espera', () => {
     await user.click(screen.getByRole('button', { name: 'Entrar na fila' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Você já está na fila desse horário.');
     await user.click(screen.getByRole('button', { name: 'Entrar na fila' }));
-    await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+    await waitFor(() => expect(onExpired).toHaveBeenCalled());
   });
 
   it('após conflito, "Entrar na fila de espera" coloca o jogador na fila', async () => {

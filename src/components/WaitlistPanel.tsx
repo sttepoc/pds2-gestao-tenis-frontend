@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { ApiError, errorMessage, isExpired } from '../api/error';
 import type { Session, Slot } from '../api/types';
 import { joinWaitlist, leaveWaitlist, listWaitlist } from '../api/waitlist';
@@ -23,17 +23,18 @@ export function WaitlistPanel({ slot, courtName, session, initial = null, onChan
     initial ?? (slot.waitlist_entry_id === null ? null : { id: slot.waitlist_entry_id, position: null }));
 
   // Acompanha a agenda recarregada: ela é o estado real depois de 404 (saiu em outra aba) ou 409 (já entrou).
-  const slotEntryId = useRef(slot.waitlist_entry_id);
-  useEffect(() => {
-    if (slotEntryId.current === slot.waitlist_entry_id) return;
-    slotEntryId.current = slot.waitlist_entry_id;
+  // Ajustado durante o render (sem efeito): a tela nunca mostra um quadro com o estado antigo.
+  const [seenEntryId, setSeenEntryId] = useState(slot.waitlist_entry_id);
+  if (seenEntryId !== slot.waitlist_entry_id) {
     const id = slot.waitlist_entry_id;
+    setSeenEntryId(id);
     setEntry((current) => (id === null ? null : current?.id === id ? current : { id, position: null }));
-  }, [slot.waitlist_entry_id]);
+  }
 
   // A agenda só informa o id da entrada; a posição vem da lista do jogador.
   const needsPosition = entry !== null && entry.position === null;
   const entryId = entry?.id;
+  const expire = useEffectEvent(onExpired);
   useEffect(() => {
     if (!needsPosition) return;
     let active = true;
@@ -44,11 +45,11 @@ export function WaitlistPanel({ slot, courtName, session, initial = null, onChan
       else setError('Não foi possível confirmar sua posição na fila.');
     }).catch((failure: unknown) => {
       if (!active) return;
-      if (isExpired(failure)) return onExpired();
+      if (isExpired(failure)) return expire();
       setError(errorMessage(failure, 'Não foi possível confirmar sua posição na fila.'));
     });
     return () => { active = false; };
-  }, [needsPosition, entryId, session.token, onExpired]);
+  }, [needsPosition, entryId, session.token]);
 
   async function toggle() {
     if (sending.current) return;

@@ -5,6 +5,7 @@ import type { Court, MaintenanceWindow, Session } from '../api/types';
 import { AccessStatus } from '../components/AccessStatus';
 import { CourtCard } from '../components/CourtCard';
 import { CourtForm } from '../components/CourtForm';
+import { LoadError, Loading } from '../components/LoadStatus';
 import { MaintenanceForm } from '../components/MaintenanceForm';
 import { useLoad } from '../hooks/useLoad';
 import type { MemberAccess } from '../hooks/useMemberAccess';
@@ -32,17 +33,8 @@ function CourtManager({ session, now = Date.now, onExpired }: Pick<Props, 'sessi
     }
   }, [closed, state.status]);
 
-  if (state.status === 'loading') {
-    return <p className="status-line" role="status"><span className="rally" aria-hidden="true" />Carregando quadras…</p>;
-  }
-  if (state.status === 'error') {
-    return (
-      <div className="access-feedback">
-        <p className="alert" role="alert">{state.message}</p>
-        <button className="button button--secondary" type="button" onClick={reload}>Tentar novamente</button>
-      </div>
-    );
-  }
+  if (state.status === 'loading') return <Loading>Carregando quadras…</Loading>;
+  if (state.status === 'error') return <LoadError message={state.message} onRetry={reload} />;
 
   const courts = state.data;
   function open(key: string, form: { editing?: Editing; maintaining?: number }) {

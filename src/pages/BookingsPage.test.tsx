@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/error';
@@ -105,7 +105,7 @@ describe('BookingsPage', () => {
     failing.unmount();
     await setupTestApi({ now: () => NOW, scenario: 'expired' });
     const { onExpired } = renderPage(player);
-    await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+    await waitFor(() => expect(onExpired).toHaveBeenCalled());
   });
 });
 
@@ -156,9 +156,9 @@ describe('BookingsPage presença', () => {
     await user.click(await screen.findByRole('button', { name: 'Confirmar presença' }));
     await user.click(screen.getByRole('tab', { name: 'Anteriores' }));
     expect(await screen.findByText('Nenhuma reserva anterior.')).toBeInTheDocument();
-    release();
-    await vi.waitFor(() => expect(api.respondAttendance).toHaveBeenCalled());
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    // Espera a resposta atrasada chegar de fato (sem tempo fixo) antes de conferir a aba.
+    const response = vi.mocked(api.respondAttendance).mock.results[0].value;
+    await act(async () => { release(); await response; });
     expect(screen.getByText('Nenhuma reserva anterior.')).toBeInTheDocument();
     expect(screen.queryByText('Carregando reservas…')).not.toBeInTheDocument();
   });
@@ -218,7 +218,7 @@ describe('BookingsPage cancelamento', () => {
     expect(screen.getByRole('button', { name: 'Cancelar reserva' })).toBeEnabled();
     api.cancelBooking = vi.fn().mockRejectedValueOnce(new ApiError('Sessão expirada.', 401)) as typeof real;
     await user.click(screen.getByRole('button', { name: 'Cancelar reserva' }));
-    await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+    await waitFor(() => expect(onExpired).toHaveBeenCalled());
   });
 });
 
@@ -303,7 +303,7 @@ describe('BookingsPage fila de espera', () => {
     await user.click(leave);
     expect(await screen.findByRole('alert')).toHaveTextContent('Falha simulada no servidor. Tente novamente.');
     await user.click(screen.getByRole('button', { name: /^Sair da fila/ }));
-    await vi.waitFor(() => expect(onExpired).toHaveBeenCalled());
+    await waitFor(() => expect(onExpired).toHaveBeenCalled());
   });
 
   it('entrada que já saiu da fila (404) some da lista com o aviso', async () => {
