@@ -111,7 +111,7 @@ export function BookingsPage({ session, onExpired, now }: Props) {
   return (
     <>
       <div className="page-heading">
-        <p className="eyebrow">QUADRAS</p>
+        <p className="eyebrow">Quadras</p>
         <h1>Minhas reservas</h1>
         <p>Acompanhe os horários que você marcou ou para os quais foi convidado.</p>
       </div>

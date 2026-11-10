@@ -9,6 +9,23 @@ export const SURFACE_LABELS: Record<Surface, string> = {
   synthetic: 'Sintética',
 };
 
+/** Quadra vista de cima, pintada com a cor do piso. Só ilustra: o piso também aparece em texto. */
+export function CourtPlan({ surface, covered }: { surface: Surface; covered: boolean }) {
+  return (
+    <svg
+      className={`court-plan surface--${surface}${covered ? ' court-plan--covered' : ''}`}
+      viewBox="0 0 30 15" aria-hidden="true" focusable="false"
+    >
+      <rect className="court-plan-floor" x="3" y="2" width="24" height="11" />
+      <g className="court-plan-lines">
+        <rect x="3" y="2" width="24" height="11" />
+        <path d="M3 3.4h24M3 11.6h24M8.6 3.4v8.2M21.4 3.4v8.2M8.6 7.5h12.8" />
+        <path className="court-plan-net" d="M15 1.2v12.6" />
+      </g>
+    </svg>
+  );
+}
+
 type Props = {
   court: Court;
   now?: number;
@@ -27,6 +44,7 @@ export function CourtCard({ court, now, removing, onRemoveMaintenance, children 
     .sort((a, b) => Date.parse(a.starts_at) - Date.parse(b.starts_at));
   return (
     <article className="court-card">
+      <CourtPlan surface={court.surface} covered={court.covered} />
       <div className="court-card-head">
         <h3>{court.name}</h3>
         {inMaintenance

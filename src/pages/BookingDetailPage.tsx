@@ -61,7 +61,7 @@ export function BookingDetailPage({ id, session, onExpired, now }: Props) {
   return (
     <>
       <div className="page-heading">
-        <p className="eyebrow">SUA RESERVA</p>
+        <p className="eyebrow">Sua reserva</p>
         <h1>{booking.court.name}</h1>
       </div>
       <section className="content-panel" aria-label="Detalhes da reserva">
@@ -77,12 +77,14 @@ export function BookingDetailPage({ id, session, onExpired, now }: Props) {
           <span>{confirmed} de {booking.participants.length} confirmaram</span>
         </p>
         {notice && <p className="notice" role="status">{notice}</p>}
-        <AttendanceActions booking={booking} session={session} onChange={setData} onExpired={onExpired} now={now} />
-        <RescheduleLink booking={booking} now={now} />
-        <CancelBookingAction
-          booking={booking} session={session} onExpired={onExpired} now={now}
-          onCancelled={(cancelled) => { setData(cancelled); setNotice('Reserva cancelada.'); }}
-        />
+        <div className="booking-actions booking-actions--detail">
+          <AttendanceActions booking={booking} session={session} onChange={setData} onExpired={onExpired} now={now} />
+          <RescheduleLink booking={booking} now={now} />
+          <CancelBookingAction
+            booking={booking} session={session} onExpired={onExpired} now={now}
+            onCancelled={(cancelled) => { setData(cancelled); setNotice('Reserva cancelada.'); }}
+          />
+        </div>
         <AttendanceList participants={booking.participants} />
       </section>
       {back}

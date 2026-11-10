@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import type { Schedule, Slot, SlotRef, SlotStatus } from '../api/types';
 import { clubTime } from '../lib/club-time';
+import { SURFACE_LABELS } from './CourtCard';
 
 type Props = {
   schedule: Schedule;
@@ -28,8 +30,11 @@ export function isClosed(slot: Slot, now: number): boolean {
 
 export function ScheduleGrid({ schedule, selected, onSelect, activeCourtId, onCourtChange, now }: Props) {
   const { courts, slots } = schedule;
-  const times = Array.from(new Set(slots.map((slot) => slot.starts_at))).sort();
-  const byKey = new Map(slots.map((slot) => [`${slot.court_id}|${slot.starts_at}`, slot]));
+  // Selecionar um horário re-renderiza a grade: o índice só é refeito quando chegam novos horários.
+  const { times, byKey } = useMemo(() => ({
+    times: Array.from(new Set(slots.map((slot) => slot.starts_at))).sort(),
+    byKey: new Map(slots.map((slot) => [`${slot.court_id}|${slot.starts_at}`, slot])),
+  }), [slots]);
 
   return (
     <div className="schedule">
@@ -37,7 +42,7 @@ export function ScheduleGrid({ schedule, selected, onSelect, activeCourtId, onCo
         {courts.map((court) => (
           <button
             key={court.id} type="button" role="tab" aria-selected={court.id === activeCourtId}
-            onClick={() => onCourtChange(court.id)}
+            className={`surface--${court.surface}`} onClick={() => onCourtChange(court.id)}
           >
             {court.name}
           </button>
@@ -47,7 +52,9 @@ export function ScheduleGrid({ schedule, selected, onSelect, activeCourtId, onCo
         <div className="schedule-grid" style={{ gridTemplateColumns: `4rem repeat(${courts.length}, minmax(5.5rem, 1fr))` }}>
           <span className="schedule-corner" aria-hidden="true" />
           {courts.map((court) => (
-            <span key={court.id} className={`schedule-court${court.id === activeCourtId ? ' is-active' : ''}`}>{court.name}</span>
+            <span key={court.id} className={`schedule-court surface--${court.surface}${court.id === activeCourtId ? ' is-active' : ''}`}>
+              {court.name}<small>{SURFACE_LABELS[court.surface]}</small>
+            </span>
           ))}
           {times.map((time) => (
             <div key={time} className="schedule-row">

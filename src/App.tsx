@@ -110,7 +110,7 @@ export function App() {
   if (auth.state.status === 'checking') {
     content = (
       <section className="card recovery-card" aria-labelledby="session-check-title">
-        <p className="eyebrow">BEM-VINDO DE VOLTA</p>
+        <p className="eyebrow">Bem-vindo de volta</p>
         <h2 className="card-title" id="session-check-title">Confirmando sua sessão</h2>
         <p className="status-line" role="status"><span className="rally" aria-hidden="true" />Só um instante…</p>
       </section>
@@ -138,7 +138,8 @@ export function App() {
 
   return (
     <>
-      {backdrop}
+      {/* A quadra animada só aparece nas telas de entrada; a área logada tem fundo próprio. */}
+      {auth.state.status !== 'authenticated' && backdrop}
       {auth.state.status === 'authenticated' ? (
         <ClubApp
           key={auth.state.session.token} session={auth.state.session} route={route} id={id}

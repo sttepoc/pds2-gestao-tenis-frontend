@@ -104,7 +104,7 @@ function CourtManager({ session, now = Date.now, onExpired }: Pick<Props, 'sessi
       {courts.length === 0 ? (
         <p className="muted">Nenhuma quadra cadastrada ainda.</p>
       ) : (
-        <div className="quick-access-grid">
+        <div className="court-grid">
           {courts.map((court) => (
             <CourtCard
               key={court.id} court={court} now={now()} removing={removing}
@@ -167,7 +167,7 @@ export function CourtsPage({ session, access, now, onRetry, onExpired }: Props) 
   return (
     <>
       <div className="page-heading">
-        <p className="eyebrow">ADMINISTRAÇÃO</p>
+        <p className="eyebrow">Administração</p>
         <h1>Quadras</h1>
         <p>Cadastre e organize as quadras do clube.</p>
       </div>

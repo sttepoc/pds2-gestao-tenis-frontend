@@ -26,7 +26,7 @@ export function AccountPage({ session, access, onRetry }: {
   return (
     <>
       <div className="page-heading">
-        <p className="eyebrow">ÁREA PESSOAL</p>
+        <p className="eyebrow">Área pessoal</p>
         <h1>Minha conta</h1>
         <p>Seus dados de acesso, em um só lugar.</p>
       </div>

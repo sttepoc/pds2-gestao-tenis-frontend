@@ -11,6 +11,27 @@
   --surface-tint: #eef3fa;
   --error: #b3261e;
   --error-tint: #fbedeb;
+  --ok: #2b6a36;
+  --ok-tint: #e5f1dc;
+
+  /* Área logada: papel claro, linhas finas como as marcações da quadra. */
+  --paper: #eef3f9;
+  --rule: #d6dfeb;
+  --rule-soft: #e6ecf4;
+  --sidebar-text: #c8d5ea;
+  --sidebar-muted: #9fb1cf;
+  --sidebar-hover: #1b3561;
+
+  /* Cor de cada piso, usada só para identificar a quadra. */
+  --clay: #c0603b;
+  --grass: #4a873b;
+  --synthetic: #2a8580;
+  --hard: var(--court);
+
+  --radius-s: 6px;
+  --radius-m: 8px;
+  --radius-l: 14px;
+  --condensed: 72%;
 
   --font: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --gutter: clamp(1rem, 4vw, 4.5rem);
@@ -42,9 +63,14 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
   color: inherit;
+}
+
+code {
+  font-size: 0.95em;
 }
 
 .visually-hidden {
@@ -307,7 +333,7 @@ input {
   width: min(100%, 26rem);
   padding: 2rem;
   background: var(--surface);
-  border-radius: 10px;
+  border-radius: var(--radius-l);
   box-shadow:
     0 1px 0 rgb(6 20 52 / 0.08),
     0 24px 64px -24px rgb(6 20 52 / 0.45);

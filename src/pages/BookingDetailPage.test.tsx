@@ -20,7 +20,7 @@ describe('BookingDetailPage', () => {
     const user = userEvent.setup();
     renderPage(mariana, 5);
     expect(await screen.findByRole('heading', { level: 1, name: 'Quadra 1' })).toBeInTheDocument();
-    expect(screen.getByText('SUA RESERVA')).toBeInTheDocument();
+    expect(screen.getByText('Sua reserva')).toBeInTheDocument();
     expect(screen.getByText('1 de 2 confirmaram')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Confirmar presença' }));
     expect(await screen.findByText('Presença confirmada')).toBeInTheDocument();

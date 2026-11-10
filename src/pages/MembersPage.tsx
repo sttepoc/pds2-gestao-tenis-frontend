@@ -38,7 +38,7 @@ export function MembersPage({ access, onRetry }: { access: MemberAccess; onRetry
   return (
     <>
       <div className="page-heading">
-        <p className="eyebrow">ADMINISTRAÇÃO</p>
+        <p className="eyebrow">Administração</p>
         <h1>Membros</h1>
         <p>O espaço de gestão dos membros do clube.</p>
       </div>

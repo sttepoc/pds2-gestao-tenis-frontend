@@ -190,7 +190,7 @@ function Agenda({ session, onExpired, booking, now = Date.now }: Omit<Props, 're
   return (
     <>
       <div className="page-heading">
-        <p className="eyebrow">QUADRAS</p>
+        <p className="eyebrow">Quadras</p>
         <h1>Agenda</h1>
         <p>{booking ? 'Escolha o dia e o novo horário livre da sua reserva.' : 'Escolha o dia e um horário livre para reservar.'}</p>
       </div>

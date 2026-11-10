@@ -1,10 +1,11 @@
-/* A área autenticada compartilha a paleta, a fonte e a quadra do login. */
+/* Área autenticada: mesma paleta e fonte do login, sobre papel claro. */
 
 a {
   color: inherit;
 }
 
-button, a {
+button,
+a {
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -12,9 +13,9 @@ button, a {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 15.5rem minmax(0, 1fr);
+  grid-template-columns: 15rem minmax(0, 1fr);
   min-height: 100dvh;
-  background: rgb(238 243 250 / 0.98);
+  background: var(--paper);
 }
 
 .skip-link {
@@ -24,7 +25,7 @@ button, a {
   z-index: 20;
   padding: 0.75rem 1rem;
   transform: translateY(-200%);
-  border-radius: 6px;
+  border-radius: var(--radius-s);
   background: var(--ball);
   color: var(--ink);
   font-weight: 650;
@@ -33,6 +34,8 @@ button, a {
 .skip-link:focus {
   transform: translateY(0);
 }
+
+/* ---------- Barra lateral ---------- */
 
 .sidebar {
   position: sticky;
@@ -43,50 +46,46 @@ button, a {
   min-height: 100dvh;
   max-height: 100dvh;
   overflow-y: auto;
-  padding: 2rem 1.25rem 1.25rem;
+  padding: 1.75rem 1rem 1.25rem;
   background: var(--ink);
   color: var(--line);
 }
 
 .brand-link {
+  padding: 0 0.75rem;
   text-decoration: none;
-  padding: 0 0.5rem;
-}
-
-.sidebar-caption {
-  margin: 3.25rem 0.75rem 0.875rem;
-  color: #a2b4d2;
-  font-size: 0.625rem;
-  font-weight: 650;
-  letter-spacing: 0.16em;
 }
 
 .main-nav {
   display: grid;
-  gap: 0.375rem;
+  gap: 0.25rem;
+  margin-top: 2.75rem;
 }
 
 .main-nav a {
   display: flex;
   align-items: center;
-  min-height: 3.125rem;
-  padding: 0.75rem;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: #c8d5ea;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-m);
+  color: var(--sidebar-text);
   text-decoration: none;
   font-size: 0.9375rem;
   font-weight: 550;
+  transition: background-color 120ms, color 120ms;
 }
 
 .main-nav a:hover {
-  background: #1c365f;
+  background: var(--sidebar-hover);
   color: white;
 }
 
+/* A página atual é a bola em jogo. */
 .main-nav a[aria-current='page'] {
   background: var(--ball);
   color: var(--ink);
+  font-weight: 650;
 }
 
 .sidebar-bottom {
@@ -99,7 +98,7 @@ button, a {
   gap: 0.75rem;
   align-items: center;
   padding: 1rem 0.5rem;
-  border-top: 1px solid #304565;
+  border-top: 1px solid #283f63;
 }
 
 .avatar {
@@ -109,9 +108,10 @@ button, a {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 50%;
-  background: #29466e;
+  background: var(--runoff);
+  box-shadow: inset 0 0 0 1.5px rgb(212 238 43 / 0.55);
   color: var(--ball);
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .sidebar-user strong {
@@ -123,7 +123,7 @@ button, a {
 .sidebar-user div > span {
   display: block;
   font-size: 0.75rem;
-  color: #a2b4d2;
+  color: var(--sidebar-muted);
 }
 
 .logout-button {
@@ -131,17 +131,19 @@ button, a {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  padding: 0.875rem 0.75rem;
-  border: 1px solid #455b7d;
-  border-radius: 6px;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #3a5279;
+  border-radius: var(--radius-m);
   background: transparent;
   color: var(--line);
   cursor: pointer;
   font-size: 0.8125rem;
+  transition: background-color 120ms;
 }
 
 .logout-button:hover {
-  background: #1c365f;
+  background: var(--sidebar-hover);
 }
 
 .logout-button:disabled {
@@ -155,6 +157,8 @@ button, a {
   font-size: 0.6875rem;
 }
 
+/* ---------- Conteúdo ---------- */
+
 .workspace-body {
   min-width: 0;
   display: flex;
@@ -166,40 +170,38 @@ button, a {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  min-height: 5rem;
-  padding: 1rem clamp(1.5rem, 4vw, 4rem);
-  border-bottom: 1px solid #dce4ef;
-  background: rgb(255 255 255 / 0.7);
+  min-height: 4rem;
+  padding: 0.75rem clamp(1.5rem, 4vw, 4rem);
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
 }
 
-.workspace-topbar > span:first-child {
-  font-size: 0.625rem;
-  letter-spacing: 0.15em;
-  font-weight: 650;
-  color: var(--ink-soft);
+.today {
+  font-weight: 550;
+  color: var(--ink);
 }
 
 .session-indicator {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.75rem;
-  color: var(--ink-soft);
 }
 
 .session-indicator::before {
   content: '';
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #26704c;
+  background: var(--ok);
+  box-shadow: 0 0 0 3px var(--ok-tint);
 }
 
 .workspace-main {
   width: 100%;
-  max-width: 76rem;
+  max-width: 74rem;
   margin-inline: auto;
-  padding: clamp(1.5rem, 4vw, 3rem) clamp(1.5rem, 4vw, 4rem);
+  padding: clamp(1.75rem, 4vw, 3rem) clamp(1.5rem, 4vw, 4rem) 3rem;
 }
 
 .workspace-main:focus {
@@ -209,37 +211,62 @@ button, a {
 .workspace-footer {
   margin-top: auto;
   padding: 1.25rem clamp(1.5rem, 4vw, 4rem);
-  border-top: 1px solid #dce4ef;
-  font-size: 0.6875rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.75rem;
   color: var(--ink-soft);
 }
+
+/* ---------- Cabeçalhos ---------- */
 
 .page-heading {
   margin-bottom: 2rem;
 }
 
 .eyebrow {
-  margin: 0 0 0.625rem;
-  font-size: 0.625rem;
-  font-weight: 650;
-  letter-spacing: 0.13em;
-  color: var(--ink-soft);
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--court);
 }
 
 .page-heading h1 {
   margin: 0;
-  font-size: clamp(2rem, 3vw, 3rem);
-  line-height: 1.1;
-  font-stretch: 80%;
-  font-weight: 760;
-  letter-spacing: -0.035em;
+  font-size: clamp(2.25rem, 3.6vw, 3.5rem);
+  font-weight: 800;
+  font-stretch: var(--condensed);
+  line-height: 1;
+  letter-spacing: -0.02em;
 }
 
-.page-heading > p:last-child {
+.page-heading > p:last-child:not(.eyebrow) {
+  max-width: 60ch;
   margin: 0.75rem 0 0;
   color: var(--ink-soft);
-  font-size: 0.9375rem;
+  font-size: 1rem;
 }
+
+.section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.875rem;
+}
+
+.section-heading h2,
+.panel-heading h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-stretch: 85%;
+}
+
+.section-heading > span {
+  font-size: 0.8125rem;
+  color: var(--ink-soft);
+}
+
+/* ---------- Início ---------- */
 
 .welcome-panel {
   position: relative;
@@ -248,10 +275,10 @@ button, a {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 16rem;
+  min-height: 15rem;
   padding: clamp(1.5rem, 3vw, 2.5rem);
-  margin-bottom: 2.25rem;
-  border-radius: 10px;
+  margin-bottom: 2.5rem;
+  border-radius: var(--radius-l);
   background: var(--runoff);
   color: var(--line);
 }
@@ -268,17 +295,17 @@ button, a {
 
 .welcome-panel h2 {
   margin: 0;
-  font-size: clamp(1.75rem, 2.6vw, 2.5rem);
-  font-stretch: 80%;
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.875rem, 2.8vw, 2.625rem);
+  font-stretch: var(--condensed);
+  font-weight: 760;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
 }
 
 .welcome-panel p:last-child {
   max-width: 34ch;
   margin: 1rem 0 0;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: #c9d8ee;
 }
 
@@ -287,7 +314,7 @@ button, a {
   flex: none;
   width: 13rem;
   height: 8rem;
-  margin-right: -4rem;
+  margin-right: -3rem;
   transform: rotate(-25deg);
   border: 1px solid #8ca9d3;
   background: var(--court);
@@ -337,93 +364,79 @@ button, a {
   box-shadow: 2px 3px 4px #122a52;
 }
 
-.section-heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.section-heading h2, .panel-heading h2 {
+/* Atalhos: uma lista só, separada por linhas, em vez de cartões iguais. */
+.quick-links {
   margin: 0;
-  font-size: 1.125rem;
-  font-weight: 650;
-}
-
-.section-heading > span {
-  font-size: 0.75rem;
-  color: var(--ink-soft);
-}
-
-.quick-access-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.25rem;
-}
-
-.destination-card {
-  display: flex;
-  flex-direction: column;
-  align-items: start;
-  padding: 1.5rem;
-  border: 1px solid #d7e0ed;
-  border-radius: 8px;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-l);
   background: var(--surface);
-  text-decoration: none;
-  transition: border-color 120ms, box-shadow 120ms;
+  overflow: hidden;
 }
 
-.destination-card:hover {
-  border-color: var(--court);
-  box-shadow: 0 5px 16px rgb(15 34 71 / 0.05);
+.quick-links li + li {
+  border-top: 1px solid var(--rule-soft);
 }
 
-.destination-tag {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  background: var(--surface-tint);
-  color: var(--ink-soft);
-  font-size: 0.5625rem;
-  font-weight: 650;
-  letter-spacing: 0.08em;
-}
-
-.destination-card h3 {
+.quick-link {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  width: 100%;
-  margin: 1.25rem 0 0.5rem;
-  font-size: 1.375rem;
+  gap: 1rem 2rem;
+  padding: 1.125rem 1.5rem;
+  text-decoration: none;
+  transition: background-color 120ms;
+}
+
+.quick-link-text {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.quick-link-text strong {
+  font-size: 1.125rem;
+  font-weight: 700;
   font-stretch: 85%;
 }
 
-.destination-card h3 > span {
-  font-size: 1.125rem;
-  color: var(--court);
-}
-
-.destination-card p {
-  margin: 0 0 1.5rem;
-  max-width: 35ch;
+.quick-link-text span {
   color: var(--ink-soft);
-  font-size: 0.8125rem;
-  line-height: 1.6;
+  font-size: 0.875rem;
 }
 
-.destination-action {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: auto;
+.quick-link-action {
+  flex: none;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
   color: var(--court);
   font-size: 0.8125rem;
   font-weight: 600;
+  transition: background-color 120ms, border-color 120ms, color 120ms;
+}
+
+.quick-link:hover {
+  background: #f6f9fc;
+}
+
+.quick-link:hover .quick-link-action {
+  border-color: var(--court);
+  background: var(--court);
+  color: white;
+}
+
+.workspace .quick-link:focus-visible {
+  outline-offset: -3px;
 }
 
 .permission-note {
   margin-top: 1.5rem;
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
 }
+
+/* ---------- Estados ---------- */
 
 .muted {
   color: var(--ink-soft);
@@ -443,21 +456,36 @@ button, a {
 }
 
 .access-feedback {
-  padding: 1rem;
-  border: 1px solid #d7e0ed;
-  border-radius: 6px;
-  background: white;
+  padding: 1rem 1.125rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  background: var(--surface);
 }
 
 .access-feedback p:first-child {
   margin-top: 0;
 }
 
+.empty-state {
+  display: grid;
+  justify-items: start;
+  gap: 0.5rem;
+  padding: 1.75rem 1.25rem;
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius-m);
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* ---------- Painéis ---------- */
+
 .content-panel {
   margin-bottom: 1.5rem;
   padding: clamp(1.25rem, 3vw, 2rem);
-  border: 1px solid #d7e0ed;
-  border-radius: 8px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-l);
   background: var(--surface);
 }
 
@@ -467,22 +495,33 @@ button, a {
   justify-content: space-between;
   gap: 1rem;
   padding-bottom: 1.25rem;
-  border-bottom: 1px solid #e3e9f2;
+  border-bottom: 1px solid var(--rule-soft);
 }
 
 .badge {
   display: inline-flex;
-  padding: 0.3rem 0.625rem;
-  border-radius: 4px;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
   background: var(--surface-tint);
   color: var(--ink-soft);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .badge--active {
-  background: #eaf4de;
-  color: #345611;
+  background: var(--ok-tint);
+  color: var(--ok);
+}
+
+.badge--active::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
 }
 
 .details-grid {
@@ -493,20 +532,20 @@ button, a {
 }
 
 .details-grid dt {
-  margin-bottom: 0.375rem;
-  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.8125rem;
   color: var(--ink-soft);
 }
 
 .details-grid dd {
   margin: 0;
   overflow-wrap: anywhere;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 550;
 }
 
 .session-panel p {
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
 }
 
 .session-panel p:last-child {
@@ -518,13 +557,18 @@ button, a {
 }
 
 .empty-panel h1 {
-  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  margin: 0.75rem 0;
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-stretch: var(--condensed);
+  font-weight: 780;
+  line-height: 1.05;
 }
 
 .empty-panel h2 {
   margin: 1rem 0 0.75rem;
-  font-size: 1.625rem;
-  font-stretch: 85%;
+  font-size: 1.75rem;
+  font-stretch: var(--condensed);
+  font-weight: 760;
 }
 
 .empty-panel > p {
@@ -538,31 +582,46 @@ button, a {
   margin-top: 1.5rem;
 }
 
+/* ---------- Links e botões ---------- */
+
 .text-link {
   color: var(--court);
   font-size: 0.875rem;
   font-weight: 600;
+  text-decoration-thickness: 1px;
   text-underline-offset: 3px;
+}
+
+.text-link:hover {
+  text-decoration-thickness: 2px;
 }
 
 .button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
   min-height: 2.75rem;
   padding: 0.625rem 1rem;
   border: 1px solid var(--ink);
-  border-radius: 6px;
+  border-radius: var(--radius-m);
   background: var(--ink);
   color: var(--line);
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
+  text-decoration: none;
+  transition: background-color 120ms, border-color 120ms;
+}
+
+.button:hover {
+  border-color: #1d3a73;
+  background: #1d3a73;
 }
 
 .button--secondary {
   border-color: var(--border);
-  background: white;
+  background: var(--surface);
   color: var(--ink);
 }
 
@@ -585,14 +644,20 @@ button, a {
   margin-bottom: 1rem;
 }
 
-.workspace a:focus-visible, .workspace button:focus-visible, .button:focus-visible {
+.workspace a:focus-visible,
+.workspace button:focus-visible,
+.workspace select:focus-visible,
+.button:focus-visible {
   outline: 3px solid var(--court);
   outline-offset: 3px;
 }
 
-.sidebar a:focus-visible, .sidebar button:focus-visible {
+.sidebar a:focus-visible,
+.sidebar button:focus-visible {
   outline-color: var(--ball);
 }
+
+/* ---------- Responsivo ---------- */
 
 @media (min-width: 1500px) {
   .mini-court {
@@ -605,10 +670,10 @@ button, a {
     grid-template-columns: 13rem minmax(0, 1fr);
   }
   .sidebar {
-    padding-inline: 0.875rem;
+    padding-inline: 0.75rem;
   }
   .sidebar .brand {
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
   }
   .mini-court {
     position: absolute;
@@ -627,21 +692,21 @@ button, a {
     max-height: none;
     padding: 1rem;
   }
+  .brand-link {
+    padding: 0;
+  }
   .sidebar .brand {
     font-size: 1rem;
-  }
-  .sidebar-caption {
-    display: none;
   }
   .main-nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 1.25rem;
+    gap: 0.375rem;
+    margin-top: 1rem;
   }
   .main-nav a {
-    min-height: 2.75rem;
-    padding: 0.625rem 0.75rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
     font-size: 0.8125rem;
   }
   .sidebar-bottom {
@@ -651,7 +716,7 @@ button, a {
     gap: 0.75rem;
     margin-top: 1rem;
     padding-top: 0.875rem;
-    border-top: 1px solid #304565;
+    border-top: 1px solid #283f63;
   }
   .sidebar-user {
     flex: 1;
@@ -673,7 +738,8 @@ button, a {
   .logout-button {
     width: auto;
     gap: 0.875rem;
-    padding: 0.625rem 0.75rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
   }
   .sidebar .mock-notice {
     width: 100%;
@@ -681,8 +747,9 @@ button, a {
     margin-top: 0;
   }
   .workspace-topbar {
-    min-height: 3.25rem;
-    padding: 0.875rem 1rem;
+    min-height: 3rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.75rem;
   }
   .workspace-main {
     padding: 1.75rem 1rem 2rem;
@@ -690,12 +757,12 @@ button, a {
   .page-heading {
     margin-bottom: 1.5rem;
   }
-  .page-heading > p:last-child {
-    font-size: 0.875rem;
+  .page-heading > p:last-child:not(.eyebrow) {
+    font-size: 0.9375rem;
   }
   .welcome-panel {
-    min-height: 14rem;
-    margin-bottom: 1.75rem;
+    min-height: 13rem;
+    margin-bottom: 2rem;
   }
   .welcome-panel p:last-child {
     max-width: 29ch;
@@ -703,19 +770,11 @@ button, a {
   .section-heading > span {
     display: none;
   }
-  .quick-access-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 1rem;
-  }
-  .destination-card {
-    padding: 1.25rem;
-  }
-  .destination-card h3 {
-    margin-top: 1rem;
-  }
-  .destination-card p {
-    max-width: none;
-    margin-bottom: 1.25rem;
+  .quick-link {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem 1.125rem;
   }
   .details-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -726,9 +785,19 @@ button, a {
   }
   .workspace-footer {
     padding-inline: 1rem;
-    font-size: 0.625rem;
+    font-size: 0.6875rem;
   }
   .empty-panel {
     padding-block: 2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-nav a,
+  .logout-button,
+  .quick-link,
+  .quick-link-action,
+  .button {
+    transition: none;
   }
 }

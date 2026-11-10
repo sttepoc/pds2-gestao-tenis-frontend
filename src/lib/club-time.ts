@@ -12,6 +12,15 @@ const labelFormat = new Intl.DateTimeFormat('pt-BR', {
   timeZone: CLUB_TIME_ZONE, weekday: 'short', day: 'numeric', month: 'short',
 });
 const weekdayFormat = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC', weekday: 'short' });
+const longDayFormat = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: CLUB_TIME_ZONE, weekday: 'long', day: 'numeric', month: 'long',
+});
+
+/** Dia por extenso no fuso do clube, como "Segunda-feira, 9 de novembro". */
+export function clubLongDay(value: number): string {
+  const label = longDayFormat.format(new Date(value));
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
 
 export function clubDate(value: string | number): string {
   return dateFormat.format(new Date(value));

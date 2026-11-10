@@ -1,32 +1,48 @@
 /* Telas de quadras, agenda e reservas. */
+
+/* Cada piso tem sua cor; ela só aparece para identificar a quadra. */
+.surface--clay { --surface-color: var(--clay); }
+.surface--hard { --surface-color: var(--hard); }
+.surface--grass { --surface-color: var(--grass); }
+.surface--synthetic { --surface-color: var(--synthetic); }
+
+/* ---------- Formulários ---------- */
+
 .court-new {
   width: auto;
-  margin-bottom: 1.25rem;
+  margin: 0 0 1.5rem;
   padding-inline: 1.5rem;
 }
 
 .court-form {
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .court-form h2 {
-  margin: 0 0 1rem;
+  margin: 0 0 1.25rem;
+  font-size: 1.375rem;
+  font-stretch: 85%;
 }
 
 .field select {
   width: 100%;
-  min-height: 2.75rem;
+  min-height: 3rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-s);
+  background: var(--surface);
   color: var(--ink);
   font: inherit;
 }
 
+.field select:hover {
+  border-color: #8a9cba;
+}
+
 .field select:focus-visible {
-  outline: 3px solid var(--court);
-  outline-offset: 2px;
+  outline: none;
+  border-color: var(--court);
+  box-shadow: 0 0 0 3px rgb(45 102 184 / 0.28);
 }
 
 .field--check {
@@ -41,6 +57,10 @@
   accent-color: var(--court);
 }
 
+.field--check label {
+  margin: 0;
+}
+
 .form-actions {
   display: flex;
   flex-wrap: wrap;
@@ -50,6 +70,18 @@
 
 .form-actions .submit {
   width: auto;
+  margin-top: 0.5rem;
+  padding-inline: 1.5rem;
+}
+
+/* ---------- Quadras ---------- */
+
+.court-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  align-items: start;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
 }
 
 .court-card {
@@ -57,38 +89,73 @@
   flex-direction: column;
   align-items: start;
   gap: 0.75rem;
-  padding: 1.5rem;
-  border: 1px solid #d7e0ed;
-  border-radius: 8px;
+  padding: 0 1.5rem 1.5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-l);
   background: var(--surface);
+  overflow: hidden;
+}
+
+/* A quadra desenhada encosta nas bordas do cartão, como uma foto de capa. */
+.court-plan {
+  display: block;
+  width: calc(100% + 3rem);
+  height: auto;
+  margin: 0 -1.5rem 0.5rem;
+  aspect-ratio: 30 / 11;
+  background: color-mix(in srgb, var(--surface-color) 22%, var(--ink));
+}
+
+.court-plan-floor {
+  fill: var(--surface-color);
+}
+
+.court-plan-lines {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.85);
+  stroke-width: 0.16;
+}
+
+.court-plan-net {
+  stroke: white;
+  stroke-width: 0.24;
+}
+
+.court-plan--covered {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 6px,
+    rgb(255 255 255 / 0.07) 6px 7px
+  );
 }
 
 .court-card-head {
   display: flex;
   justify-content: space-between;
-  align-items: start;
+  align-items: center;
   gap: 0.75rem;
   width: 100%;
 }
 
 .court-card-head h3 {
   margin: 0;
-  font-size: 1.375rem;
-  font-stretch: 85%;
+  font-size: 1.5rem;
+  font-weight: 760;
+  font-stretch: var(--condensed);
   overflow-wrap: anywhere;
 }
 
 .court-card-meta {
   display: flex;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
   margin: 0;
   color: var(--ink-soft);
+  font-size: 0.9375rem;
 }
 
-@media (max-width: 640px) {
-  .court-card {
-    padding: 1.25rem;
-  }
+.court-card > .form-actions {
+  margin-top: 0.25rem;
 }
 
 .maintenance-list {
@@ -104,53 +171,97 @@
   display: grid;
   gap: 0.25rem;
   justify-items: start;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 0.9375rem;
+  padding: 0.75rem 0.875rem;
+  border-left: 3px solid var(--border);
+  border-radius: 0 var(--radius-s) var(--radius-s) 0;
+  background: var(--surface-tint);
+  font-size: 0.875rem;
   overflow-wrap: anywhere;
+}
+
+.maintenance-list li > span:first-child {
+  font-weight: 600;
+}
+
+.maintenance-list .button {
+  min-height: 2.25rem;
+  margin-top: 0.375rem;
+  padding-block: 0.375rem;
 }
 
 .maintenance-form {
   width: 100%;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule-soft);
 }
 
-/* Agenda */
+@media (max-width: 640px) {
+  .court-card {
+    padding: 0 1.25rem 1.25rem;
+  }
+  .court-plan {
+    width: calc(100% + 2.5rem);
+    margin-inline: -1.25rem;
+  }
+}
+
+/* ---------- Agenda ---------- */
+
 .day-strip {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.25rem;
+  margin: 0 0 1.5rem;
+  padding-bottom: 0.25rem;
   overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .day-strip-item {
   display: grid;
   justify-items: center;
-  min-width: 3.5rem;
+  flex: none;
+  min-width: 3.75rem;
   min-height: 2.75rem;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
   background: var(--surface);
-  color: var(--ink);
+  color: var(--ink-soft);
   font: inherit;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: border-color 120ms, background-color 120ms;
 }
 
+/* Dias como placar: número condensado e de largura fixa. */
 .day-strip-item strong {
-  font-size: 1.25rem;
+  color: var(--ink);
+  font-size: 1.5rem;
+  font-weight: 760;
+  font-stretch: var(--condensed);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.day-strip-item:hover {
+  border-color: var(--court);
 }
 
 .day-strip-item[aria-pressed='true'] {
-  border-color: var(--runoff);
-  background: var(--runoff);
-  color: white;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--sidebar-muted);
+}
+
+.day-strip-item[aria-pressed='true'] strong {
+  color: var(--ball);
 }
 
 .day-strip-item:focus-visible,
 .slot:focus-visible,
-.court-tabs button:focus-visible {
+.court-tabs button:focus-visible,
+.tab:focus-visible {
   outline: 3px solid var(--court);
   outline-offset: 2px;
 }
@@ -163,8 +274,14 @@
 
 @media (min-width: 1000px) {
   .schedule-layout:has(.side-panel) {
-    grid-template-columns: minmax(0, 1fr) 20rem;
+    grid-template-columns: minmax(0, 1fr) 21rem;
     align-items: start;
+  }
+
+  /* O painel acompanha a rolagem da grade. */
+  .side-panel {
+    position: sticky;
+    top: 1.5rem;
   }
 }
 
@@ -183,47 +300,104 @@
 }
 
 .schedule-court {
+  display: grid;
+  justify-items: center;
+  padding: 0.5rem 0.25rem 0.625rem;
+  border-top: 4px solid var(--surface-color, var(--court));
+  border-radius: 3px 3px 0 0;
   font-weight: 700;
+  font-stretch: 85%;
   text-align: center;
+}
+
+.schedule-court small {
+  color: var(--ink-soft);
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-stretch: 100%;
 }
 
 .schedule-time {
   align-self: center;
   color: var(--ink-soft);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-stretch: 85%;
   font-variant-numeric: tabular-nums;
 }
 
+/* O status aparece escrito na célula; a legenda continua valendo. */
 .slot {
+  position: relative;
   min-height: 2.75rem;
-  border: 1px dashed var(--border);
-  border-radius: 6px;
-  background: transparent;
+  padding: 0 0.625rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-s);
+  background: var(--surface);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
   cursor: pointer;
+  transition: background-color 120ms, border-color 120ms;
 }
 
-.slot--free:hover {
+.slot::after {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.slot--free {
+  border-color: #c3d1e4;
+}
+
+.slot--free:hover,
+.slot--free.is-selected {
+  border-color: var(--court);
   background: var(--surface-tint);
+}
+
+.slot.slot--free:hover::after,
+.slot.slot--free.is-selected::after {
+  content: 'Reservar';
+  color: var(--court);
 }
 
 .slot--booked {
-  border: 1px solid var(--court);
+  border-color: var(--court);
   background: var(--court);
 }
 
+.slot.slot--booked::after {
+  content: 'Ocupado';
+  color: rgb(255 255 255 / 0.85);
+}
+
 .slot--mine {
-  border: 1px solid var(--ink);
+  border-color: #b5cc1c;
   background: var(--ball);
 }
 
+.slot.slot--mine::after {
+  content: 'Sua reserva';
+  color: var(--ink);
+}
+
 .slot--maintenance {
-  border: 1px solid var(--border);
-  background: repeating-linear-gradient(45deg, var(--surface-tint) 0 6px, var(--border) 6px 8px);
+  border-color: var(--border);
+  background: repeating-linear-gradient(45deg, var(--surface-tint) 0 6px, #d3dcea 6px 8px);
   cursor: not-allowed;
 }
 
+.slot.slot--maintenance::after {
+  content: 'Manutenção';
+  color: var(--ink-soft);
+}
+
 .slot--closed {
-  border: 1px solid var(--surface-tint);
-  background: var(--surface-tint);
+  border-color: transparent;
+  background: rgb(214 223 235 / 0.45);
   cursor: not-allowed;
 }
 
@@ -240,32 +414,46 @@
 }
 
 .court-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
   min-height: 2.75rem;
   padding: 0.5rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
   background: var(--surface);
   color: var(--ink);
   font: inherit;
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
 }
 
+.court-tabs button::before {
+  content: '';
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 2px;
+  background: var(--surface-color, var(--court));
+}
+
 .court-tabs button[aria-selected='true'] {
-  border-color: var(--runoff);
-  background: var(--runoff);
+  border-color: var(--ink);
+  background: var(--ink);
   color: white;
 }
 
 .schedule-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin: 1rem 0 0;
-  padding: 0;
+  gap: 0.5rem 1.25rem;
+  margin: 1.25rem 0 0;
+  padding: 1rem 0 0;
+  border-top: 1px solid var(--rule-soft);
   list-style: none;
   color: var(--ink-soft);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
 .schedule-legend li {
@@ -276,26 +464,52 @@
 
 .slot-swatch {
   display: inline-block;
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 1px solid var(--rule);
   border-radius: 4px;
 }
 
 .side-panel {
-  padding: 1.25rem;
-  border: 1px solid #d7e0ed;
-  border-radius: 8px;
+  padding: 1.25rem 1.25rem 1.5rem;
+  border: 1px solid var(--rule);
+  border-top: 4px solid var(--ball);
+  border-radius: var(--radius-m);
   background: var(--surface);
 }
 
 .side-panel h2 {
-  margin: 0 0 0.25rem;
-  font-size: 1.25rem;
+  margin: 0 0 0.125rem;
+  font-size: 1.5rem;
+  font-weight: 760;
+  font-stretch: var(--condensed);
 }
 
-.booking-panel h3 {
-  margin: 1rem 0 0.5rem;
-  font-size: 1.05rem;
+.side-panel > .muted {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+}
+
+.side-panel .notice p {
+  margin: 0 0 0.25rem;
+}
+
+.booking-panel h3,
+.waitlist-panel h3 {
+  margin: 0 0 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 1.0625rem;
+}
+
+.booking-panel .submit,
+.waitlist-panel .submit {
+  width: 100%;
+}
+
+.booking-panel .form-actions,
+.waitlist-panel .form-actions {
+  margin-top: 0.5rem;
 }
 
 .chip-list,
@@ -312,10 +526,12 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+  padding: 0.125rem 0.125rem 0.125rem 0.75rem;
   border-radius: 999px;
   background: var(--surface-tint);
   color: var(--ink);
+  font-size: 0.875rem;
+  font-weight: 550;
 }
 
 .chip-remove {
@@ -327,6 +543,16 @@
   color: var(--runoff);
   font: inherit;
   cursor: pointer;
+}
+
+.chip-remove:hover {
+  background: var(--rule);
+}
+
+.player-results .button {
+  min-height: 2.25rem;
+  padding-block: 0.375rem;
+  border-radius: 999px;
 }
 
 @media (max-width: 719px) {
@@ -344,14 +570,18 @@
   }
 }
 
+/* ---------- Abas ---------- */
+
 .tabs {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-  border-bottom: 1px solid var(--border);
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--rule);
+  overflow-x: auto;
 }
 
 .tab {
+  flex: none;
   min-height: 2.75rem;
   padding: 0.5rem 1rem;
   border: 0;
@@ -361,17 +591,19 @@
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  transition: color 120ms, border-color 120ms;
 }
 
-.tab[aria-selected='true'] {
-  border-bottom-color: var(--runoff);
+.tab:hover {
   color: var(--ink);
 }
 
-.tab:focus-visible {
-  outline: 3px solid var(--court);
-  outline-offset: 2px;
+.tab[aria-selected='true'] {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
 }
+
+/* ---------- Reservas ---------- */
 
 .booking-list {
   display: grid;
@@ -380,41 +612,57 @@
 
 .booking-card {
   display: flex;
-  gap: 1rem;
+  gap: 1.125rem;
   align-items: flex-start;
   padding: 1rem;
-  border: 1px solid #d7e0ed;
-  border-radius: 8px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
   background: var(--surface);
 }
 
+/* Data no formato de placar. */
 .booking-date {
   display: grid;
   justify-items: center;
-  min-width: 3.5rem;
-  padding: 0.5rem;
-  border-radius: 8px;
-  background: var(--surface-tint);
-  color: var(--ink);
-  font-size: 0.8125rem;
+  flex: none;
+  min-width: 4rem;
+  padding: 0.5rem 0.5rem 0.625rem;
+  border-radius: var(--radius-s);
+  background: var(--ink);
+  color: var(--sidebar-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .booking-date strong {
-  font-size: 1.5rem;
-  line-height: 1.1;
+  color: var(--ball);
+  font-size: 1.875rem;
+  font-weight: 780;
+  font-stretch: var(--condensed);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .booking-info {
   min-width: 0;
+  flex: 1;
 }
 
 .booking-info h3 {
-  margin: 0 0 0.35rem;
-  font-size: 1.05rem;
+  margin: 0.125rem 0 0.375rem;
+  font-size: 1.125rem;
+  font-weight: 700;
 }
 
 .booking-link {
-  color: var(--runoff);
+  color: var(--ink);
+  text-decoration-color: var(--border);
+  text-underline-offset: 4px;
+}
+
+.booking-link:hover {
+  color: var(--court);
+  text-decoration-color: currentColor;
 }
 
 .booking-meta {
@@ -424,11 +672,21 @@
   align-items: center;
   margin: 0;
   color: var(--ink-soft);
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+}
+
+.content-panel > .booking-meta + .booking-meta {
+  margin-top: 0.75rem;
+}
+
+.content-panel > .booking-meta:first-child {
+  color: var(--ink);
+  font-size: 1.125rem;
+  font-weight: 600;
 }
 
 .booking-badge {
-  padding: 0.125rem 0.6rem;
+  padding: 0.125rem 0.625rem;
   border-radius: 999px;
   background: var(--surface-tint);
   color: var(--ink);
@@ -445,7 +703,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.75rem;
+  margin-top: 0.875rem;
 }
 
 .booking-actions:empty {
@@ -455,7 +713,12 @@
 .attendance-actions {
   display: grid;
   gap: 0.5rem;
-  margin: 0.5rem 0;
+  margin: 1.25rem 0 0.75rem;
+}
+
+.booking-actions .attendance-actions {
+  flex-basis: 100%;
+  margin: 0;
 }
 
 .attendance-state {
@@ -471,17 +734,23 @@
 
 .attendance-list {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
   gap: 1rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule-soft);
 }
 
 .attendance-group h3 {
-  margin: 0 0 0.25rem;
+  margin: 0 0 0.375rem;
+  font-size: 0.9375rem;
 }
 
 .attendance-group ul {
   margin: 0;
-  padding-left: 1.25rem;
+  padding-left: 1.125rem;
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
 }
 
 .button--danger {
@@ -490,23 +759,29 @@
   color: white;
 }
 
-.button--danger:focus-visible {
-  outline: 3px solid var(--court);
-  outline-offset: 3px;
+.button--danger:hover {
+  border-color: #921f18;
+  background: #921f18;
 }
 
 .cancel-booking {
   display: grid;
   gap: 0.75rem;
   justify-items: start;
+  margin-top: 0.5rem;
+}
+
+.booking-actions .cancel-booking {
+  margin-top: 0;
 }
 
 .confirm-action {
   display: grid;
   gap: 0.5rem;
   padding: 1rem;
-  border: 1px solid var(--error);
-  border-radius: 8px;
+  border: 1px solid #e7b6b1;
+  border-left: 4px solid var(--error);
+  border-radius: var(--radius-m);
   background: var(--error-tint);
 }
 
@@ -519,7 +794,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  margin-top: 0.25rem;
 }
+
+/* ---------- Remarcação e fila ---------- */
 
 .reschedule-banner {
   display: flex;
@@ -527,16 +805,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem 1rem;
-  margin: 0 0 1rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid #d7e0ed;
+  margin: 0 0 1.25rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--rule);
   border-left: 4px solid var(--ball);
-  border-radius: 8px;
-  background: var(--surface);
+  border-radius: var(--radius-m);
+  background: #fbfde9;
 }
 
 .reschedule-banner p {
   margin: 0;
+  font-weight: 550;
 }
 
 .reschedule-change {
@@ -546,9 +825,9 @@
 }
 
 .reschedule-change dt {
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  text-transform: uppercase;
+  color: var(--ink-soft);
 }
 
 .reschedule-change dd {
@@ -556,7 +835,7 @@
 }
 
 .offer-banners {
-  margin: 0 0 1.25rem;
+  margin: 0 0 1.5rem;
 }
 
 .offer-banner {
@@ -566,15 +845,17 @@
   justify-content: space-between;
   gap: 0.75rem 1.25rem;
   margin: 0 0 0.75rem;
-  padding: 1rem 1.25rem;
-  border-radius: 8px;
+  padding: 1.125rem 1.25rem;
+  border-radius: var(--radius-l);
   background: var(--ball);
   color: var(--ink);
 }
 
 .offer-banner h2 {
   margin: 0 0 0.25rem;
-  font-size: 1.0625rem;
+  font-size: 1.25rem;
+  font-weight: 760;
+  font-stretch: 85%;
 }
 
 .offer-banner p {
@@ -587,7 +868,33 @@
   gap: 0.5rem;
 }
 
+.offer-banner .button--secondary {
+  border-color: var(--ink);
+  background: transparent;
+}
+
+.offer-banner .button--secondary:hover {
+  background: rgb(15 34 71 / 0.08);
+}
+
 .offer-banner .alert {
   flex-basis: 100%;
   margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day-strip-item,
+  .slot,
+  .tab {
+    transition: none;
+  }
+}
+
+.booking-actions--detail {
+  margin-top: 1.25rem;
+}
+
+/* Com a confirmação aberta, o cancelamento ocupa a linha inteira. */
+.booking-actions .cancel-booking:has(.confirm-action) {
+  flex-basis: 100%;
 }

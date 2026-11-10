@@ -1,6 +1,7 @@
 import { useEffect, useRef, useTransition, type ReactNode } from 'react';
 import type { Session } from '../api/auth';
 import type { MemberAccess } from '../hooks/useMemberAccess';
+import { clubLongDay } from '../lib/club-time';
 import { routePaths, type Route } from '../navigation';
 import { BallMark } from './CourtBackdrop';
 
@@ -44,7 +45,6 @@ export function AppLayout({ session, route, access, onLogout, children, mockNoti
       </a>
       <aside className="sidebar" aria-label="Área do clube">
         <a href={routePaths.home} className="brand brand-link"><BallMark />Clube de Tênis</a>
-        <p className="sidebar-caption">ÁREA DO CLUBE</p>
         <nav className="main-nav" aria-label="Navegação principal">
           {links.map((link) => (
             <a key={link.route} href={routePaths[link.route]} aria-current={route === link.route || (link.route === 'bookings' && route === 'booking') ? 'page' : undefined}>
@@ -71,7 +71,7 @@ export function AppLayout({ session, route, access, onLogout, children, mockNoti
       </aside>
       <div className="workspace-body">
         <header className="workspace-topbar">
-          <span>CLUBE DE TÊNIS</span><span className="session-indicator">Sessão ativa</span>
+          <span className="today">{clubLongDay(Date.now())}</span><span className="session-indicator">Sessão ativa</span>
         </header>
         <main className="workspace-main" id="conteudo" tabIndex={-1} ref={mainRef}>{children}</main>
         <footer className="workspace-footer">
